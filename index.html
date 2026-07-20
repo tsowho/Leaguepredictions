@@ -397,8 +397,8 @@ function render(immediate) {
 
   // League selector
   h += '<div class="league-selector">';
-  h += '<div class="league-btn' + (currentLeague === 'pl' ? ' active' : '') + '" onclick="switchLeague(\x27pl\x27)"><div class="league-icon"><img src="img/pl-logo.png" width="32" height="32" style="vertical-align:middle"></div><div class="league-name">Premier League</div><div class="league-sub">2026/27</div></div>';
-  h += '<div class="league-btn' + (currentLeague === 'cl' ? ' active' : '') + '" onclick="switchLeague(\x27cl\x27)"><div class="league-icon"><img src="img/cl-logo.png" width="32" height="32" style="vertical-align:middle"></div><div class="league-name">Champions League</div><div class="league-sub">Draw: Aug 27</div></div>';
+  h += '<div class="league-btn' + (currentLeague === 'pl' ? ' active' : '') + '" onclick="switchLeague(\x27pl\x27)"><div class="league-icon"><img src="img/pl-logo.png" width="36" height="36" style="vertical-align:middle;background:#fff;border-radius:8px;padding:3px"></div><div class="league-name">Premier League</div><div class="league-sub">2026/27</div></div>';
+  h += '<div class="league-btn' + (currentLeague === 'cl' ? ' active' : '') + '" onclick="switchLeague(\x27cl\x27)"><div class="league-icon"><img src="img/cl-logo.png" width="36" height="36" style="vertical-align:middle;background:#fff;border-radius:8px;padding:3px"></div><div class="league-name">Champions League</div><div class="league-sub">Draw: Aug 27</div></div>';
   h += '</div>';
 
   if(currentLeague === 'cl') {
