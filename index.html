@@ -608,7 +608,7 @@ function renderResults() {
     mwMatches.forEach(function(m) {
       var actual = state.actuals['m' + m.id] || {};
       h += '<div class="admin-match">';
-      h += '<div class="teams">' + m.home + ' vs ' + m.away + '</div>';
+      h += '<div class="teams">' + teamLogo(m.home, 18) + ' ' + m.home + ' vs ' + m.away + ' ' + teamLogo(m.away, 18) + '</div>';
       h += '<div class="admin-inputs">';
       h += '<input type="number" min="0" id="actual_s1_' + m.id + '" value="' + (actual.s1 !== undefined ? actual.s1 : '') + '">';
       h += '<span class="dash">-</span>';
