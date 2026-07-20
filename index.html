@@ -197,6 +197,36 @@ var PL_TEAMS = [
   'Man Utd','Newcastle','Nott Forest','Sunderland','Tottenham'
 ];
 
+
+var TEAM_LOGOS = {
+  'Arsenal': 'img/arsenal.png',
+  'Aston Villa': 'img/aston-villa.png',
+  'Bournemouth': 'img/bournemouth.png',
+  'Brentford': 'img/brentford.png',
+  'Brighton': 'img/brighton.png',
+  'Chelsea': 'img/chelsea.png',
+  'Coventry': 'img/coventry.png',
+  'Crystal Palace': 'img/crystal-palace.png',
+  'Everton': 'img/everton.png',
+  'Fulham': 'img/fulham.png',
+  'Hull': 'img/hull.png',
+  'Ipswich': 'img/ipswich.png',
+  'Leeds': 'img/leeds.png',
+  'Liverpool': 'img/liverpool.png',
+  'Man City': 'img/man-city.png',
+  'Man Utd': 'img/man-utd.png',
+  'Newcastle': 'img/newcastle.png',
+  'Nott Forest': 'img/nott-forest.png',
+  'Sunderland': 'img/sunderland.png',
+  'Tottenham': 'img/tottenham.png'
+};
+function teamLogo(name, size) {
+  size = size || 22;
+  var url = TEAM_LOGOS[name];
+  if(!url) return '';
+  return '<img src="' + url + '" width="' + size + '" height="' + size + '" style="vertical-align:middle" onerror="this.style.display=\x27none\x27">';
+}
+
 var PL_MATCHES = [
   // MW1 - Aug 21-24
   { id:1, mw:1, home:'Arsenal', away:'Coventry', date:'2026-08-21', time:'20:00' },
@@ -367,9 +397,17 @@ function render(immediate) {
 
   // League selector
   h += '<div class="league-selector">';
-  h += '<div class="league-btn active" onclick="switchLeague(\x27pl\x27)"><div class="league-icon">&#127951;</div><div class="league-name">Premier League</div><div class="league-sub">2026/27</div></div>';
-  h += '<div class="league-btn disabled"><div class="league-icon">&#11088;</div><div class="league-name">Champions League</div><div class="league-sub">Coming September</div></div>';
+  h += '<div class="league-btn' + (currentLeague === 'pl' ? ' active' : '') + '" onclick="switchLeague(\x27pl\x27)"><div class="league-icon">&#127951;</div><div class="league-name">Premier League</div><div class="league-sub">2026/27</div></div>';
+  h += '<div class="league-btn' + (currentLeague === 'cl' ? ' active' : '') + '" onclick="switchLeague(\x27cl\x27)"><div class="league-icon">&#11088;</div><div class="league-name">Champions League</div><div class="league-sub">Draw: Aug 27</div></div>';
   h += '</div>';
+
+  if(currentLeague === 'cl') {
+    h += '<div class="card" style="text-align:center;padding:30px 20px"><div style="font-size:40px;margin-bottom:12px">&#11088;</div>';
+    h += '<div style="font-size:16px;font-weight:600;margin-bottom:6px">Champions League 2026/27</div>';
+    h += '<div style="font-size:13px;color:var(--muted);line-height:1.6">League phase draw: <strong>August 27</strong><br>Matchday 1: <strong>September 8-10</strong><br><br>Fixtures will be added after the draw.<br>Stay tuned!</div></div>';
+    c.innerHTML = h;
+    return;
+  }
 
   switch(currentTab) {
     case 'dashboard': h += renderDashboard(); break;
@@ -462,7 +500,7 @@ function renderPredict() {
     else h += '<span style="color:var(--accent)">&#128275; Open</span>';
     h += '</div>';
 
-    h += '<div class="match-teams"><span class="match-team home">' + m.home + '</span>';
+    h += '<div class="match-teams"><span class="match-team home">' + m.home + ' ' + teamLogo(m.home) + '</span>';
 
     if(locked && actual && actual.s1 !== undefined) {
       // Show actual result
@@ -478,7 +516,7 @@ function renderPredict() {
       h += '<span style="font-size:12px;color:var(--muted)">vs</span>';
     }
 
-    h += '<span class="match-team away">' + m.away + '</span></div>';
+    h += '<span class="match-team away">' + teamLogo(m.away) + ' ' + m.away + '</span></div>';
 
     if(!locked) {
       var s1 = (pred && pred.s1 !== undefined) ? pred.s1 : '';
@@ -547,9 +585,9 @@ function renderResults() {
     var r = calcPoints(pred, actual);
 
     h += '<div class="match-card">';
-    h += '<div class="match-teams"><span class="match-team home">' + m.home + '</span>';
+    h += '<div class="match-teams"><span class="match-team home">' + m.home + ' ' + teamLogo(m.home) + '</span>';
     h += '<span class="match-result"><span class="score">' + actual.s1 + ' - ' + actual.s2 + '</span></span>';
-    h += '<span class="match-team away">' + m.away + '</span></div>';
+    h += '<span class="match-team away">' + teamLogo(m.away) + ' ' + m.away + '</span></div>';
     if(pred && pred.s1 !== undefined) {
       h += '<div class="match-prediction">You: ' + pred.s1 + ' - ' + pred.s2;
       if(r) h += ' <span class="pts pts-' + r.pts + '" style="margin-left:6px">' + (r.pts === 3 ? '+3 Exact' : r.pts === 1 ? '+1' : '0') + '</span>';
