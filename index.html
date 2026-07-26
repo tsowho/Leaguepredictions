@@ -160,24 +160,49 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 <body>
 
 <div id="loginScreen" class="login-wrap">
-  <div class="login-box">
-    <div style="font-size:36px;margin-bottom:8px">&#9917;</div>
-    <h1>League Predictions</h1>
-    <p class="sub">Premier League &bull; Champions League</p>
-    <div id="loginForm">
-      <input type="text" id="loginName" placeholder="Your name" autocomplete="off">
-      <input type="password" id="loginPin" placeholder="4-digit PIN" maxlength="4" inputmode="numeric">
-      <button class="btn" onclick="doLogin()">Log In</button>
-      <span class="toggle" onclick="toggleSignup()">New here? Sign up</span>
-      <div id="loginError" class="error"></div>
+  <div class="login-box" style="max-width:420px;padding:0;overflow:hidden">
+    <!-- Hero banner -->
+    <div style="background:linear-gradient(135deg,#3d195b 0%,#1a0a2e 50%,#0b1560 100%);padding:32px 24px 20px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-20px;right:-20px;width:120px;height:120px;border-radius:50%;background:rgba(0,255,133,0.06)"></div>
+      <div style="position:absolute;bottom:-30px;left:-30px;width:100px;height:100px;border-radius:50%;background:rgba(255,215,0,0.05)"></div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:12px">
+        <img src="img/pl-logo.png" width="44" height="44" style="background:#fff;border-radius:10px;padding:4px" onerror="this.outerHTML='&#9917;'">
+        <img src="img/cl-logo.png" width="44" height="44" style="background:#fff;border-radius:10px;padding:4px" onerror="this.style.display='none'">
+      </div>
+      <h1 style="font-size:22px;color:#fff;margin-bottom:2px">League Predictions</h1>
+      <p style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:14px">Premier League &bull; Champions League &bull; 2026/27</p>
+      <!-- Countdown -->
+      <div id="loginCountdown" style="background:rgba(0,0,0,0.3);border-radius:10px;padding:10px 14px;text-align:center">
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase" id="countdownLabel">Season kicks off in</div>
+        <div id="countdownTimer" style="font-size:20px;font-weight:700;color:#00ff85;margin-top:2px"></div>
+      </div>
+      <!-- Player count -->
+      <div id="loginPlayerCount" style="margin-top:10px;text-align:center;font-size:12px;color:rgba(255,255,255,0.4)"></div>
     </div>
-    <div id="signupForm" style="display:none">
-      <input type="text" id="signupName" placeholder="Choose a name" autocomplete="off">
-      <input type="password" id="signupPin" placeholder="Choose a 4-digit PIN" maxlength="4" inputmode="numeric">
-      <input type="password" id="signupPin2" placeholder="Confirm PIN" maxlength="4" inputmode="numeric">
-      <button class="btn" onclick="doSignup()">Sign Up</button>
-      <span class="toggle" onclick="toggleSignup()">Already have an account? Log in</span>
-      <div id="signupError" class="error"></div>
+    <!-- Form area -->
+    <div style="padding:24px">
+      <div id="loginForm">
+        <input type="text" id="loginName" placeholder="Your name" autocomplete="off">
+        <input type="password" id="loginPin" placeholder="4-digit PIN" maxlength="4" inputmode="numeric">
+        <button class="btn" onclick="doLogin()">Log In</button>
+        <span class="toggle" onclick="toggleSignup()" id="signupToggle">New here? Sign up</span>
+        <div id="loginError" class="error"></div>
+      </div>
+      <div id="signupForm" style="display:none">
+        <input type="text" id="signupName" placeholder="Choose a display name" autocomplete="off">
+        <input type="password" id="signupPin" placeholder="Create a 4-digit PIN" maxlength="4" inputmode="numeric">
+        <input type="password" id="signupPin2" placeholder="Confirm your PIN" maxlength="4" inputmode="numeric">
+        <button class="btn" id="signupBtn" onclick="doSignup()">Join the Game</button>
+        <span class="toggle" onclick="toggleSignup()">Already have an account? Log in</span>
+        <div id="signupError" class="error"></div>
+      </div>
+      <!-- Features teaser -->
+      <div style="margin-top:18px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(29,158,117,0.1);color:#1d9e75">&#127942; Leaderboard</span>
+        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(55,138,221,0.1);color:#378ADD">&#9876;&#65039; Duels</span>
+        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(230,168,23,0.1);color:#e6a817">&#128293; Streaks</span>
+        <span style="font-size:11px;padding:4px 10px;border-radius:6px;background:rgba(108,99,255,0.1);color:#6c63ff">&#128172; Chat</span>
+      </div>
     </div>
   </div>
 </div>
@@ -228,6 +253,8 @@ var currentPlayer = null;
 var currentTab = 'dashboard';
 var currentLeague = 'pl';
 var currentMW = 1;
+var SIGNUP_CUTOFF = new Date('2026-08-21T20:00:00+01:00'); // signups close when PL starts
+function isSignupOpen() { return new Date() < SIGNUP_CUTOFF; }
 
 // ========== PL 2026/27 MATCHES ==========
 var PL_TEAMS = [
@@ -701,6 +728,7 @@ function doLogin() {
 }
 
 function doSignup() {
+  if(!isSignupOpen()) { document.getElementById('signupError').textContent = 'Signups are closed! Season has started.'; return; }
   var name = document.getElementById('signupName').value.trim();
   var pin = document.getElementById('signupPin').value.trim();
   var pin2 = document.getElementById('signupPin2').value.trim();
@@ -745,6 +773,48 @@ function logout() {
     });
   }
 })();
+
+// ========== LOGIN PAGE ENHANCEMENTS ==========
+function updateLoginCountdown() {
+  var el = document.getElementById('countdownTimer');
+  var label = document.getElementById('countdownLabel');
+  var toggle = document.getElementById('signupToggle');
+  var btn = document.getElementById('signupBtn');
+  if(!el) return;
+  var now = new Date();
+  var diff = SIGNUP_CUTOFF - now;
+  if(diff <= 0) {
+    label.textContent = 'Season has started!';
+    el.textContent = 'Predictions are live';
+    el.style.color = '#e6a817';
+    if(toggle) toggle.style.display = 'none';
+    if(btn) { btn.textContent = 'Signups Closed'; btn.disabled = true; btn.style.opacity = '0.4'; }
+    return;
+  }
+  var d = Math.floor(diff / 86400000);
+  var hrs = Math.floor((diff % 86400000) / 3600000);
+  var mins = Math.floor((diff % 3600000) / 60000);
+  var secs = Math.floor((diff % 60000) / 1000);
+  if(d > 0) el.textContent = d + 'd ' + hrs + 'h ' + mins + 'm ' + secs + 's';
+  else el.textContent = hrs + 'h ' + mins + 'm ' + secs + 's';
+  label.textContent = isSignupOpen() ? 'Signups close when season starts' : 'Season has started!';
+}
+
+function updateLoginPlayerCount() {
+  var el = document.getElementById('loginPlayerCount');
+  if(!el) return;
+  var count = Object.keys(state.players || {}).length;
+  if(count > 0) el.innerHTML = '&#128101; ' + count + ' player' + (count !== 1 ? 's' : '') + ' already joined';
+  else el.innerHTML = 'Be the first to join!';
+}
+
+// Run countdown timer
+setInterval(updateLoginCountdown, 1000);
+updateLoginCountdown();
+
+// Update player count when players data changes
+stateRef.child('players').on('value', function() { setTimeout(updateLoginPlayerCount, 100); });
+setTimeout(updateLoginPlayerCount, 500);
 
 // ========== UTILS ==========
 function getMatchTime(m) {
