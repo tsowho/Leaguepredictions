@@ -169,9 +169,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <!-- Berry Telegram marquee -->
     <div class="berry-marquee">
       <a href="https://t.me/BERRYNWA1" target="_blank" rel="noopener">
-        <span>&#127826; Join Berry on Telegram &mdash; Tips, Previews &amp; Chat &#8594; t.me/BERRYNWA1</span>
-        <span>&#127826; Join Berry on Telegram &mdash; Tips, Previews &amp; Chat &#8594; t.me/BERRYNWA1</span>
-        <span>&#127826; Join Berry on Telegram &mdash; Tips, Previews &amp; Chat &#8594; t.me/BERRYNWA1</span>
+        <span>&#127827; Join Berry on Telegram &mdash; Tips, Previews &amp; Chat &#8594; t.me/BERRYNWA1</span>
+        <span>&#127827; Join Berry on Telegram &mdash; Tips, Previews &amp; Chat &#8594; t.me/BERRYNWA1</span>
+        <span>&#127827; Join Berry on Telegram &mdash; Tips, Previews &amp; Chat &#8594; t.me/BERRYNWA1</span>
       </a>
     </div>
     <!-- Hero banner -->
@@ -1227,6 +1227,107 @@ function streakBadge(player) {
   if(ls >= 3) return ' <span class="streak-badge" style="background:rgba(226,75,74,0.15);color:#e24b4a">&#128167;' + ls + '</span>';
   return '';
 }
+// ========== BERRYCOINS SYSTEM ==========
+function getStreakBonus(player) {
+  var s = getFullStreak(player);
+  if(s >= 10) return 50;
+  if(s >= 7) return 20;
+  if(s >= 5) return 10;
+  if(s >= 3) return 5;
+  return 0;
+}
+
+function getBerryCoins(player) {
+  var lb = getLeaderboard();
+  var me = lb.find(function(p) { return p.name === player; });
+  var base = me ? me.total : 0;
+  var bonus = getStreakBonus(player);
+  var loginB = 0;
+  if(player === currentPlayer) { try { var ld = JSON.parse(localStorage.getItem('berryLogin_' + player)); loginB = ld ? getLoginBonus(ld.streak) : 0; } catch(e){} }
+  return base + bonus + loginB;
+}
+
+
+
+function getSuffix(n) {
+  if(n % 100 >= 11 && n % 100 <= 13) return 'th';
+  switch(n % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+function getAccuracy(player) {
+  var lb = getLeaderboard();
+  var me = lb.find(function(p) { return p.name === player; });
+  if(!me || me.predicted === 0) return 0;
+  return Math.round(((me.exact + me.correct) / me.predicted) * 100);
+}
+function berrycoinDisplay(amount, size) {
+  size = size || '14px';
+  return '<span class="berrycoin"><span class="berrycoin-icon" style="font-size:'+size+'">&#127827;</span>' + amount + '</span>';
+}
+
+function syncBerryCoins() {
+  if(!currentPlayer) return;
+  var coins = getBerryCoins(currentPlayer);
+  db.ref('pl2627/berrycoins/' + currentPlayer).set({ coins: coins, updated: Date.now() });
+}
+// ========== LOGIN STREAK ==========
+function getLoginStreak() {
+  var key = 'berryLogin_' + currentPlayer;
+  var data = null;
+  try { data = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+  if(!data) data = { streak: 0, lastLogin: null };
+  
+  var today = new Date().toDateString();
+  var yesterday = new Date(Date.now() - 86400000).toDateString();
+  
+  if(data.lastLogin === today) return data;
+  
+  if(data.lastLogin === yesterday) {
+    data.streak++;
+  } else if(data.lastLogin !== today) {
+    data.streak = 1;
+  }
+  data.lastLogin = today;
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {}
+  
+  // Sync to Firebase
+  db.ref('pl2627/loginStreaks/' + currentPlayer).set({ streak: data.streak, lastLogin: today });
+  return data;
+}
+
+function getLoginBonus(streak) {
+  if(streak >= 7) return 15;
+  if(streak >= 5) return 10;
+  if(streak >= 3) return 5;
+  if(streak >= 1) return 2;
+  return 0;
+}
+
+function loginStreakHTML() {
+  var data = getLoginStreak();
+  var s = data.streak;
+  var bonus = getLoginBonus(s);
+  var dots = '';
+  for(var i = 0; i < 7; i++) {
+    dots += '<div class="' + (i < s % 7 || (s > 0 && s % 7 === 0) ? 'streak-dot-fill' : 'streak-dot-empty') + '"></div>';
+  }
+  var h = '<div class="login-streak">';
+  h += '<div style="font-size:28px">&#128293;</div>';
+  h += '<div style="flex:1">';
+  h += '<div style="font-size:13px;font-weight:600;color:#e6a817">' + s + '-day login streak!</div>';
+  h += '<div style="font-size:11px;color:var(--muted);margin-top:2px">Log in daily to earn bonus BerryCoins</div>';
+  h += '<div class="streak-dots">' + dots + '</div>';
+  h += '</div>';
+  h += '<div style="text-align:center"><div style="font-size:16px;font-weight:600;color:#e6a817">+' + bonus + '</div><div style="font-size:9px;color:var(--muted)">bonus</div></div>';
+  h += '</div>';
+  return h;
+}
+
+
 
 function getHeadToHead(p1, p2) {
   var w1 = 0, w2 = 0, ties = 0, tot = 0;
@@ -1304,7 +1405,7 @@ function getTrashTalk() {
   var lb = getLeaderboard();
   var msgs = [];
   var leader = lb[0];
-  if(leader && leader.total > 0) msgs.push(leader.name + ' leads the pack with ' + leader.total + ' pts!');
+  if(leader && leader.total > 0) msgs.push(leader.name + ' leads the pack with ' + leader.total + ' BerryCoins!');
   lb.forEach(function(p) {
     var s = getFullStreak(p.name);
     if(s >= 3) msgs.push(p.name + ' is on a ' + s + '-match hot streak! &#128293;');
@@ -1356,21 +1457,44 @@ renderDashboard = function() {
   // Header
   h += '<div class="header"><h2>&#128075; Hey, ' + currentPlayer + '</h2><span class="user-info" onclick="logout()">Log out</span></div>';
 
-  // Ticker
-  h += '<div class="ticker-wrap"><div class="ticker-dot" id="tickerDot" style="background:#1d9e75"></div><div class="ticker-text" id="tickerText"></div></div>';
+  // Login streak banner
+  h += loginStreakHTML();
 
-  // Stats
+  // BerryCoins wallet card
+  var myCoins = getBerryCoins(currentPlayer);
+  var predBonus = getStreakBonus(currentPlayer);
+  var loginData = null;
+  try { loginData = JSON.parse(localStorage.getItem('berryLogin_' + currentPlayer)); } catch(e) {}
+  var loginB = loginData ? getLoginBonus(loginData.streak) : 0;
   var lb = getLeaderboard();
-  var me = lb.find(function(p) { return p.name === currentPlayer; }) || { total:0, exact:0, predicted:0 };
+  var me = lb.find(function(p) { return p.name === currentPlayer; }) || { total:0, exact:0, correct:0, predicted:0 };
+
+  h += '<div class="wallet-card">';
+  h += '<div class="wallet-header"><div class="wallet-label">&#127827; BerryCoins wallet</div>';
+  if(predBonus > 0 || loginB > 0) h += '<div class="wallet-trend" style="color:#1d9e75">&#8593; +' + (predBonus + loginB) + ' bonus</div>';
+  h += '</div>';
+  h += '<div class="wallet-amount"><span class="icon">&#127827;</span><span class="num">' + myCoins + '</span><span class="label">BerryCoins</span></div>';
+  h += '<div class="wallet-breakdown">';
+  h += '<div><div class="wb-label">Predictions</div><div class="wb-val">' + me.total + '</div></div>';
+  h += '<div><div class="wb-label">Streak bonus</div><div class="wb-val wb-green">+' + predBonus + '</div></div>';
+  h += '<div><div class="wb-label">Login bonus</div><div class="wb-val wb-amber">+' + loginB + '</div></div>';
+  h += '</div></div>';
+  syncBerryCoins();
+
+  // Stats grid 2x2
   var myPos = lb.findIndex(function(p) { return p.name === currentPlayer; }) + 1;
   var myStreak = getFullStreak(currentPlayer);
+  var myAcc = getAccuracy(currentPlayer);
 
-  h += '<div class="stats-row">';
-  h += '<div class="stat-box"><div class="stat-num">' + me.total + '</div><div class="stat-label">Points</div></div>';
-  h += '<div class="stat-box"><div class="stat-num">' + me.exact + '</div><div class="stat-label">Exact</div></div>';
-  h += '<div class="stat-box"><div class="stat-num">' + (myPos || '-') + '</div><div class="stat-label">Position</div></div>';
-  h += '<div class="stat-box"><div class="stat-num">' + (myStreak > 0 ? '&#128293;' + myStreak : me.predicted) + '</div><div class="stat-label">' + (myStreak > 0 ? 'Streak' : 'Predicted') + '</div></div>';
+  h += '<div class="stats-grid">';
+  h += '<div class="stat-card"><div class="sc-label">Position</div><div class="sc-num" style="color:var(--amber)">' + (myPos > 0 ? myPos + getSuffix(myPos) : '-') + '</div></div>';
+  h += '<div class="stat-card"><div class="sc-label">Hot streak</div><div class="sc-num">' + (myStreak > 0 ? '&#128293; ' + myStreak + '<span class="sc-sub wb-green">+' + predBonus + '</span>' : '0') + '</div></div>';
+  h += '<div class="stat-card"><div class="sc-label">Exact scores</div><div class="sc-num">' + me.exact + '</div></div>';
+  h += '<div class="stat-card"><div class="sc-label">Accuracy</div><div class="sc-num">' + myAcc + '%</div></div>';
   h += '</div>';
+
+  // Ticker
+  h += '<div class="ticker-wrap"><div class="ticker-dot" id="tickerDot" style="background:#1d9e75"></div><div class="ticker-text" id="tickerText"></div></div>';
 
   // Next matchweek deadline
   var nextMW = null;
@@ -1392,16 +1516,17 @@ renderDashboard = function() {
     h += '</div>';
   }
 
-  // Quick leaderboard
+  // Leaderboard with prediction points + BerryCoins badge
   h += '<div class="card"><h3>&#127942; Leaderboard</h3>';
   if(lb.length === 0) {
     h += '<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px">No players yet. Share the link!</div>';
   } else {
     lb.slice(0, 5).forEach(function(p, i) {
       var posClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-      h += '<div class="lb-card"><span class="lb-pos ' + posClass + '">' + (i + 1) + '</span>';
-      h += '<span class="lb-name">' + p.name + streakBadge(p.name) + '</span>';
-      h += '<span class="lb-pts">' + p.total + '</span></div>';
+      var isMe = p.name === currentPlayer;
+      h += '<div class="lb-card' + (isMe ? ' lb-me' : '') + '"><span class="lb-pos ' + posClass + '">' + (i + 1) + '</span>';
+      h += '<span class="lb-name">' + p.name + (isMe ? '<span class="lb-you">you</span>' : '') + streakBadge(p.name) + '</span>';
+      h += '<span class="lb-dual"><div class="lb-pts-main">' + p.total + ' pts</div><div class="lb-coins">&#127827; ' + getBerryCoins(p.name) + '</div></span></div>';
     });
     if(lb.length > 5) h += '<div style="text-align:center;padding:8px"><span style="color:var(--blue);font-size:13px;cursor:pointer" onclick="switchTab(\x27leaderboard\x27)">View all &#8594;</span></div>';
   }
@@ -1509,7 +1634,7 @@ renderLeaderboard = function() {
     h += '<span class="lb-name">' + p.name + (isMe ? ' &#128994;' : '') + streakBadge(p.name) + '</span>';
     h += '<span class="lb-stat">' + p.exact + ' exact</span>';
     h += '<span class="lb-stat">' + p.correct + 'W ' + p.wrong + 'L</span>';
-    h += '<span class="lb-pts">' + p.total + '</span>';
+    h += '<span class="lb-dual"><div class="lb-pts-main">' + p.total + ' pts</div><div class="lb-coins">&#127827; ' + getBerryCoins(p.name) + '</div></span>';
     h += '</div>';
   });
   return h;
