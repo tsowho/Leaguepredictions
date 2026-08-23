@@ -150,6 +150,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .streak-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(29,158,117,0.15);color:#1d9e75}
 .streak-fire{animation:firePulse 1.5s ease-in-out infinite;font-size:16px}
 @keyframes firePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+/* Signup closed notice */
+.signup-closed-notice{display:inline-block;color:#f87171;font-size:12px;margin-top:6px;animation:pulseGlow 2s ease-in-out infinite;text-shadow:0 0 8px rgba(248,113,113,0.4)}
+@keyframes pulseGlow{0%,100%{opacity:1;text-shadow:0 0 8px rgba(248,113,113,0.4)}50%{opacity:0.6;text-shadow:0 0 16px rgba(248,113,113,0.7)}}
 /* BerryCoins */
 .berrycoin{display:inline-flex;align-items:center;gap:3px;font-weight:600}
 .berrycoin-icon{font-size:14px}
@@ -858,6 +861,7 @@ function updateLoginPlayerCount() {
   var count = Object.keys(state.players || {}).length;
   if(count > 0) el.innerHTML = '&#128101; ' + count + ' player' + (count !== 1 ? 's' : '') + ' already joined';
   else el.innerHTML = 'Be the first to join!';
+  el.innerHTML += '<br><span class="signup-closed-notice">Sorry, signups have closed. Season has begun and predictions are live.</span>';
 }
 
 // Run countdown timer
