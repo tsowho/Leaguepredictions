@@ -1443,7 +1443,7 @@ function getTrashTalk() {
   var lb = getLeaderboard();
   var msgs = [];
   var leader = lb[0];
-  if(leader && leader.total > 0) msgs.push(leader.name + ' leads the pack with ' + leader.total + ' BerryCoins!');
+  if(leader && leader.total > 0) msgs.push(leader.name + ' leads the pack with ' + leader.total + ' pts!');
   lb.forEach(function(p) {
     var s = getFullStreak(p.name);
     if(s >= 3) msgs.push(p.name + ' is on a ' + s + '-match hot streak! &#128293;');
