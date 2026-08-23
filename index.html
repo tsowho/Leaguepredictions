@@ -1281,7 +1281,12 @@ function getBerryCoins(player) {
   var base = me ? me.total : 0;
   var bonus = getStreakBonus(player);
   var loginB = 0;
-  if(player === currentPlayer) { try { var ld = JSON.parse(localStorage.getItem('berryLogin_' + player)); loginB = ld ? getLoginBonus(ld.streak) : 0; } catch(e){} }
+  if(player === currentPlayer && dailyClaimData) {
+    var today = getTodayStr();
+    var yesterday = getYesterdayStr();
+    var alive = dailyClaimData.lastClaim === today || dailyClaimData.lastClaim === yesterday;
+    if(alive) loginB = getLoginBonus(dailyClaimData.streak || 0);
+  }
   return base + bonus + loginB;
 }
 
@@ -1312,55 +1317,86 @@ function syncBerryCoins() {
   var coins = getBerryCoins(currentPlayer);
   db.ref('pl2627/berrycoins/' + currentPlayer).set({ coins: coins, updated: Date.now() });
 }
-// ========== LOGIN STREAK ==========
-function getLoginStreak() {
-  var key = 'berryLogin_' + currentPlayer;
-  var data = null;
-  try { data = JSON.parse(localStorage.getItem(key)); } catch(e) {}
-  if(!data) data = { streak: 0, lastLogin: null };
-  
-  var today = new Date().toDateString();
-  var yesterday = new Date(Date.now() - 86400000).toDateString();
-  
-  if(data.lastLogin === today) return data;
-  
-  if(data.lastLogin === yesterday) {
-    data.streak++;
-  } else if(data.lastLogin !== today) {
-    data.streak = 1;
-  }
-  data.lastLogin = today;
-  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) {}
-  
-  // Sync to Firebase
-  db.ref('pl2627/loginStreaks/' + currentPlayer).set({ streak: data.streak, lastLogin: today });
-  return data;
+// ========== DAILY CLAIM STREAK ==========
+var dailyClaimData = null;
+
+function loadDailyClaim(cb) {
+  if(dailyClaimData) { if(cb) cb(); return; }
+  db.ref('pl2627/loginStreaks/' + currentPlayer).once('value', function(snap) {
+    dailyClaimData = snap.val() || { streak: 0, lastClaim: null };
+    if(cb) cb();
+  });
 }
 
 function getLoginBonus(streak) {
-  if(streak >= 7) return 15;
-  if(streak >= 5) return 10;
-  if(streak >= 3) return 5;
-  if(streak >= 1) return 2;
-  return 0;
+  if(streak <= 0) return 0;
+  if(streak % 7 === 0) return 6;
+  return 1;
 }
 
-function loginStreakHTML() {
-  var data = getLoginStreak();
-  var s = data.streak;
-  var bonus = getLoginBonus(s);
-  var dots = '';
-  for(var i = 0; i < 7; i++) {
-    dots += '<div class="' + (i < s % 7 || (s > 0 && s % 7 === 0) ? 'streak-dot-fill' : 'streak-dot-empty') + '"></div>';
+function getTodayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function getYesterdayStr() {
+  var d = new Date(Date.now() - 86400000);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+window.claimDaily = function() {
+  var today = getTodayStr();
+  if(dailyClaimData && dailyClaimData.lastClaim === today) return;
+  
+  var yesterday = getYesterdayStr();
+  var newStreak = 1;
+  if(dailyClaimData && dailyClaimData.lastClaim === yesterday) {
+    newStreak = (dailyClaimData.streak || 0) + 1;
   }
+  
+  dailyClaimData = { streak: newStreak, lastClaim: today };
+  db.ref('pl2627/loginStreaks/' + currentPlayer).set(dailyClaimData);
+  syncBerryCoins();
+  render();
+};
+
+function loginStreakHTML() {
+  if(!dailyClaimData) { loadDailyClaim(function() { render(); }); return ''; }
+  var s = dailyClaimData.streak || 0;
+  var today = getTodayStr();
+  var claimed = dailyClaimData.lastClaim === today;
+  var bonus = getLoginBonus(s);
+  
+  // Check if streak is broken (missed yesterday)
+  var yesterday = getYesterdayStr();
+  var streakAlive = claimed || dailyClaimData.lastClaim === yesterday || !dailyClaimData.lastClaim;
+  var displayStreak = streakAlive ? s : 0;
+  var displayBonus = streakAlive ? bonus : 2;
+  
+  var dots = '';
+  var filled = displayStreak % 7;
+  if(displayStreak > 0 && filled === 0) filled = 7;
+  for(var i = 0; i < 7; i++) {
+    dots += '<div class="' + (i < filled ? 'streak-dot-fill' : 'streak-dot-empty') + '"></div>';
+  }
+  
   var h = '<div class="login-streak">';
   h += '<div style="font-size:28px">&#128293;</div>';
   h += '<div style="flex:1">';
-  h += '<div style="font-size:13px;font-weight:600;color:#e6a817">' + s + '-day login streak!</div>';
-  h += '<div style="font-size:11px;color:var(--muted);margin-top:2px">Log in daily to earn bonus BerryCoins</div>';
+  if(claimed) {
+    h += '<div style="font-size:13px;font-weight:600;color:#e6a817">' + displayStreak + '-day streak!</div>';
+    h += '<div style="font-size:11px;color:var(--muted);margin-top:2px">Come back tomorrow to keep it going</div>';
+  } else {
+    h += '<div style="font-size:13px;font-weight:600;color:#e6a817">' + (streakAlive && displayStreak > 0 ? displayStreak + '-day streak' : 'Start your streak!') + '</div>';
+    h += '<div style="font-size:11px;color:var(--muted);margin-top:2px">Claim your daily BerryCoins</div>';
+  }
   h += '<div class="streak-dots">' + dots + '</div>';
   h += '</div>';
-  h += '<div style="text-align:center"><div style="font-size:16px;font-weight:600;color:#e6a817">+' + bonus + '</div><div style="font-size:9px;color:var(--muted)">bonus</div></div>';
+  if(claimed) {
+    h += '<div style="text-align:center;padding:6px 12px;border-radius:8px;background:rgba(29,158,117,0.15);color:#1d9e75;font-size:11px;font-weight:600">&#10003; Claimed</div>';
+  } else {
+    h += '<div style="text-align:center;padding:8px 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:12px;font-weight:600;cursor:pointer" onclick="claimDaily()">Claim +' + displayBonus + '</div>';
+  }
   h += '</div>';
   return h;
 }
@@ -1501,9 +1537,13 @@ renderDashboard = function() {
   // BerryCoins wallet card
   var myCoins = getBerryCoins(currentPlayer);
   var predBonus = getStreakBonus(currentPlayer);
-  var loginData = null;
-  try { loginData = JSON.parse(localStorage.getItem('berryLogin_' + currentPlayer)); } catch(e) {}
-  var loginB = loginData ? getLoginBonus(loginData.streak) : 0;
+  var loginB = 0;
+  if(dailyClaimData) {
+    var today = getTodayStr();
+    var yesterday = getYesterdayStr();
+    var alive = dailyClaimData.lastClaim === today || dailyClaimData.lastClaim === yesterday;
+    if(alive) loginB = getLoginBonus(dailyClaimData.streak || 0);
+  }
   var lb = getLeaderboard();
   var me = lb.find(function(p) { return p.name === currentPlayer; }) || { total:0, exact:0, correct:0, predicted:0 };
 
