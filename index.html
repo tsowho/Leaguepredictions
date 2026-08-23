@@ -1286,10 +1286,7 @@ function getBerryCoins(player) {
   var bonus = getStreakBonus(player);
   var loginB = 0;
   if(player === currentPlayer && dailyClaimData) {
-    var today = getTodayStr();
-    var yesterday = getYesterdayStr();
-    var alive = dailyClaimData.lastClaim === today || dailyClaimData.lastClaim === yesterday;
-    if(alive) loginB = getLoginBonus(dailyClaimData.streak || 0);
+    loginB = dailyClaimData.totalLoginCoins || 0;
   }
   return base + bonus + loginB;
 }
@@ -1328,6 +1325,14 @@ function loadDailyClaim(cb) {
   if(dailyClaimData) { if(cb) cb(); return; }
   db.ref('pl2627/loginStreaks/' + currentPlayer).once('value', function(snap) {
     dailyClaimData = snap.val() || { streak: 0, lastClaim: null };
+    // Migrate: if claimed before totalLoginCoins existed, backfill it
+    if(dailyClaimData.lastClaim && dailyClaimData.totalLoginCoins === undefined) {
+      var s = dailyClaimData.streak || 0;
+      var backfill = 0;
+      for(var i = 1; i <= s; i++) { backfill += (i % 7 === 0 ? 6 : 1); }
+      dailyClaimData.totalLoginCoins = backfill;
+      db.ref('pl2627/loginStreaks/' + currentPlayer).set(dailyClaimData);
+    }
     if(cb) cb();
   });
 }
@@ -1358,7 +1363,9 @@ window.claimDaily = function() {
     newStreak = (dailyClaimData.streak || 0) + 1;
   }
   
-  dailyClaimData = { streak: newStreak, lastClaim: today };
+  var prevTotal = (dailyClaimData ? dailyClaimData.totalLoginCoins : 0) || 0;
+  var todayReward = getLoginBonus(newStreak);
+  dailyClaimData = { streak: newStreak, lastClaim: today, totalLoginCoins: prevTotal + todayReward };
   db.ref('pl2627/loginStreaks/' + currentPlayer).set(dailyClaimData);
   syncBerryCoins();
   render();
@@ -1541,13 +1548,7 @@ renderDashboard = function() {
   // BerryCoins wallet card
   var myCoins = getBerryCoins(currentPlayer);
   var predBonus = getStreakBonus(currentPlayer);
-  var loginB = 0;
-  if(dailyClaimData) {
-    var today = getTodayStr();
-    var yesterday = getYesterdayStr();
-    var alive = dailyClaimData.lastClaim === today || dailyClaimData.lastClaim === yesterday;
-    if(alive) loginB = getLoginBonus(dailyClaimData.streak || 0);
-  }
+  var loginB = (dailyClaimData ? dailyClaimData.totalLoginCoins : 0) || 0;
   var lb = getLeaderboard();
   var me = lb.find(function(p) { return p.name === currentPlayer; }) || { total:0, exact:0, correct:0, predicted:0 };
 
