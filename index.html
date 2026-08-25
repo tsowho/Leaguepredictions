@@ -1314,6 +1314,55 @@ function hasPendingRedemption(player) {
   return getMyRedemptions(player).some(function(x){ return x.status === 'pending'; });
 }
 
+var BERRY_RATE = 10; // 1 BerryCoin = ₦10
+var REDEEM_OPTIONS = [
+  { group:'Airtime', label:'₦500 airtime',  cost:50 },
+  { group:'Airtime', label:'₦1,000 airtime', cost:100 },
+  { group:'Data', label:'2GB data',  cost:200 },
+  { group:'Data', label:'5GB data',  cost:500 },
+  { group:'Data', label:'10GB data', cost:1000 }
+];
+var REDEEM_EMAIL = 'berrybank@agentmail.to';
+
+window.redeemReward = function(label, cost) {
+  var bal = getBerryCoins(currentPlayer);
+  if(bal < cost) { alert('You need ' + cost.toLocaleString() + ' BerryCoins for ' + label + '.'); return; }
+  if(hasPendingRedemption(currentPlayer)) { alert('You already have a pending request. Wait for it to be reviewed.'); return; }
+  var phone = prompt('Enter the phone number to credit (' + label + '):');
+  if(phone === null) return;
+  phone = phone.trim();
+  if(!/^0\d{10}$/.test(phone)) { alert('Please enter a valid 11-digit number (e.g. 080XXXXXXXX).'); return; }
+  if(!confirm('Redeem ' + label + ' for ' + cost.toLocaleString() + ' BerryCoins to ' + phone + '?\n\nCoins are deducted once an admin approves.')) return;
+  var balanceAfter = bal - cost;
+  db.ref('pl2627/redemptions').push({ player: currentPlayer, reward: label, cost: cost, ts: Date.now(), status: 'pending' });
+  var subject = 'BerryCoins redemption \u2014 ' + currentPlayer + ' \u2014 ' + label;
+  var body = 'Player: ' + currentPlayer + '\nReward: ' + label + '\nCost: ' + cost + ' BerryCoins\nPhone to credit: ' + phone + '\nBalance after redemption: ' + balanceAfter + ' BerryCoins';
+  window.location.href = 'mailto:' + REDEEM_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  setTimeout(function(){
+    alert('Request submitted!\n\nIf your email app did not open, please send this to ' + REDEEM_EMAIL + ':\n\nReward: ' + label + '\nPhone: ' + phone);
+  }, 800);
+};
+
+window.approveRedemption = function(id) {
+  if(currentPlayer !== ADMIN) return;
+  var adminPin = (state.players[ADMIN] || {}).pin;
+  var entered = prompt('Enter your admin PIN to approve (deducts coins):');
+  if(entered === null) return;
+  if(!adminPin || entered !== adminPin) { alert('Wrong PIN. Approval cancelled.'); return; }
+  db.ref('pl2627/redemptions/' + id).update({ status: 'approved', approvedBy: ADMIN, approvedAt: Date.now() });
+};
+
+window.rejectRedemption = function(id) {
+  if(currentPlayer !== ADMIN) return;
+  if(!confirm('Reject this redemption? No coins are deducted.')) return;
+  db.ref('pl2627/redemptions/' + id).update({ status: 'rejected', approvedBy: ADMIN, approvedAt: Date.now() });
+};
+
+window.fulfillRedemption = function(id) {
+  if(currentPlayer !== ADMIN) return;
+  if(!confirm('Mark as fulfilled? Confirm you have sent the airtime/data to the player.')) return;
+  db.ref('pl2627/redemptions/' + id).update({ status: 'fulfilled', fulfilledAt: Date.now() });
+};
 
 function getSuffix(n) {
   if(n % 100 >= 11 && n % 100 <= 13) return 'th';
