@@ -1661,6 +1661,67 @@ renderDashboard = function() {
   h += '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Tap a reward, enter the number to credit &mdash; an email opens to the Bank. Coins deduct after approval.</div>';
   h += '</div>';
 
+  // My redeem history (player)
+  var myReds = getMyRedemptions(currentPlayer);
+  if(myReds.length > 0) {
+    h += '<div class="card"><h3>&#128220; My redeem history</h3>';
+    myReds.forEach(function(x){
+      var map = {
+        pending:   ['#e6a817', 'Pending'],
+        approved:  ['#378ADD', 'Pending crediting'],
+        fulfilled: ['#1d9e75', 'You have been credited'],
+        rejected:  ['#e24b4a', 'Rejected']
+      };
+      var m = map[x.status] || map.pending;
+      var when = x.ts ? new Date(x.ts).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : '';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">';
+      h += '<div><div style="font-size:13px;font-weight:500">' + x.reward + '</div><div style="font-size:11px;color:var(--muted)">' + (x.cost||0).toLocaleString() + ' &#127827; &middot; ' + when + '</div></div>';
+      h += '<span style="background:' + m[0] + '22;color:' + m[0] + ';font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px">' + m[1] + '</span>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+
+  // Admin: redemption approvals
+  if(currentPlayer === ADMIN) {
+    var allReds = [];
+    var rr = state.redemptions || {};
+    Object.keys(rr).forEach(function(k){ if(rr[k]) allReds.push(Object.assign({ id:k }, rr[k])); });
+    allReds.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
+    var pending = allReds.filter(function(x){ return x.status === 'pending'; });
+    var toPayout = allReds.filter(function(x){ return x.status === 'approved'; });
+
+    h += '<div class="card" style="border-color:rgba(230,168,23,0.3)"><h3 style="color:#e6a817">&#128737; Admin &mdash; Redemptions</h3>';
+    h += '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Approve needs your PIN &amp; deducts coins. Mark fulfilled once you\x27ve sent it.</div>';
+
+    if(pending.length === 0 && toPayout.length === 0) {
+      h += '<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">No pending or to-pay-out requests.</div>';
+    }
+    pending.forEach(function(x){
+      h += '<div style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><div style="font-size:13px;font-weight:600">' + x.player + '</div><div style="font-size:11px;color:var(--muted)">' + x.reward + ' &middot; ' + (x.cost||0).toLocaleString() + ' &#127827;</div></div><span style="font-size:10px;color:#e6a817">Pending</span></div>';
+      h += '<div style="display:flex;gap:6px"><button onclick="approveRedemption(\x27' + x.id + '\x27)" style="flex:1;padding:6px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:600;cursor:pointer">Approve</button><button onclick="rejectRedemption(\x27' + x.id + '\x27)" style="flex:1;padding:6px;border-radius:6px;border:1px solid #e24b4a;background:transparent;color:#e24b4a;font-size:11px;font-weight:600;cursor:pointer">Reject</button></div>';
+      h += '</div>';
+    });
+    toPayout.forEach(function(x){
+      h += '<div style="border:1px solid rgba(55,138,221,0.3);border-radius:8px;padding:10px;margin-bottom:8px">';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div><div style="font-size:13px;font-weight:600">' + x.player + '</div><div style="font-size:11px;color:var(--muted)">' + x.reward + ' &middot; ' + (x.cost||0).toLocaleString() + ' &#127827;</div></div><span style="font-size:10px;color:#378ADD">Approved &middot; to pay out</span></div>';
+      h += '<button onclick="fulfillRedemption(\x27' + x.id + '\x27)" style="width:100%;padding:6px;border-radius:6px;border:none;background:#1d9e75;color:#fff;font-size:11px;font-weight:600;cursor:pointer">&#10003; Mark fulfilled (I\x27ve sent it)</button>';
+      h += '</div>';
+    });
+
+    var done = allReds.filter(function(x){ return x.status === 'fulfilled' || x.status === 'rejected'; });
+    if(done.length > 0) {
+      h += '<div style="font-size:11px;font-weight:600;color:var(--muted);margin:12px 0 6px">History</div>';
+      done.slice(0, 20).forEach(function(x){
+        var col = x.status === 'fulfilled' ? '#1d9e75' : '#e24b4a';
+        var lbl = x.status === 'fulfilled' ? 'Credited' : 'Rejected';
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12px"><span>' + x.player + ' &middot; ' + x.reward + '</span><span style="color:' + col + ';font-weight:600">' + lbl + '</span></div>';
+      });
+    }
+    h += '</div>';
+  }
+
   // Stats grid 2x2
   var myPos = lb.findIndex(function(p) { return p.name === currentPlayer; }) + 1;
   var myStreak = getFullStreak(currentPlayer);
