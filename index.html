@@ -1635,32 +1635,30 @@ renderDashboard = function() {
   h += '</div></div>';
   syncBerryCoins();
 
-  // Exchange / Redeem card
-  var canRedeem = myCoins >= 1000;
+    // Redeem rewards card — five options, per-tier locking
+  var pendMine = hasPendingRedemption(currentPlayer);
   h += '<div style="background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2);border-radius:10px;padding:14px;margin-bottom:14px">';
-  h += '<div style="font-size:13px;font-weight:600;margin-bottom:8px">&#127873; Redeem rewards</div>';
-  if(!canRedeem) {
-    h += '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px"><span>Progress to redeem</span><span>' + myCoins.toLocaleString() + ' / 1,000</span></div>';
-    h += '<div style="height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden"><div style="width:' + Math.min(100, (myCoins/1000)*100) + '%;height:100%;background:linear-gradient(90deg,#e24b4a,#e6a817);border-radius:3px"></div></div></div>';
-  } else {
-    h += '<div style="margin-bottom:10px;font-size:10px;color:#1d9e75;font-weight:600">&#10003; Eligible to redeem!</div>';
-  }
-  h += '<div style="display:flex;gap:8px">';
-  h += '<div style="flex:1;background:rgba(255,255,255,0.04);border:1px solid ' + (canRedeem ? 'rgba(29,158,117,0.3)' : 'rgba(255,255,255,0.08)') + ';border-radius:8px;padding:10px;text-align:center;' + (canRedeem ? '' : 'opacity:0.5') + '">';
-  h += '<div style="font-size:18px;margin-bottom:4px">&#128222;</div>';
-  h += '<div style="font-size:12px;font-weight:500">Airtime</div>';
-  h += '<div style="font-size:10px;color:var(--muted);margin-top:2px">1,000 &#127827;</div>';
-  h += '<div style="font-size:9px;color:var(--muted);margin-top:2px">&#8358;500 - &#8358;1,000</div></div>';
-  h += '<div style="flex:1;background:rgba(255,255,255,0.04);border:1px solid ' + (canRedeem ? 'rgba(29,158,117,0.3)' : 'rgba(255,255,255,0.08)') + ';border-radius:8px;padding:10px;text-align:center;' + (canRedeem ? '' : 'opacity:0.5') + '">';
-  h += '<div style="font-size:18px;margin-bottom:4px">&#128246;</div>';
-  h += '<div style="font-size:12px;font-weight:500">Data</div>';
-  h += '<div style="font-size:10px;color:var(--muted);margin-top:2px">1,500 &#127827;</div>';
-  h += '<div style="font-size:9px;color:var(--muted);margin-top:2px">2GB - 10GB monthly</div></div>';
-  h += '</div>';
-  if(!canRedeem) {
-    h += '<div style="font-size:10px;color:#e6a817;text-align:center;margin-top:8px">&#128274; Earn 1,000 BerryCoins to unlock</div>';
-  }
-  h += '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:' + (canRedeem ? '8' : '4') + 'px">Send email to the Bank &#8212; <a href="mailto:berrybank@agentmail.to" style="color:var(--accent);text-decoration:none">berrybank@agentmail.to</a></div>';
+  h += '<div style="font-size:13px;font-weight:600;margin-bottom:2px">&#127873; Redeem rewards &#128522;</div>';
+  h += '<div style="font-size:10px;color:var(--muted);margin-bottom:10px">Rate: 1 &#127827; = &#8358;' + BERRY_RATE + ' &middot; your balance: ' + myCoins.toLocaleString() + ' &#127827;</div>';
+  if(pendMine) h += '<div style="font-size:10px;color:#e6a817;text-align:center;margin-bottom:10px">&#9203; You have a pending request awaiting review</div>';
+  ['Airtime','Data'].forEach(function(grp){
+    var icon = grp === 'Airtime' ? '&#128222;' : '&#128246;';
+    h += '<div style="font-size:11px;font-weight:600;color:var(--muted);margin:4px 0 6px">' + icon + ' ' + grp + '</div>';
+    h += '<div style="display:flex;gap:8px;margin-bottom:8px">';
+    REDEEM_OPTIONS.filter(function(o){ return o.group === grp; }).forEach(function(o){
+      var afford = myCoins >= o.cost;
+      var active = afford && !pendMine;
+      var shortLabel = o.label.replace(' airtime','').replace(' data','');
+      h += '<div style="flex:1;background:rgba(255,255,255,0.04);border:1px solid ' + (afford ? 'rgba(29,158,117,0.3)' : 'rgba(255,255,255,0.08)') + ';border-radius:8px;padding:10px;text-align:center;' + (afford ? '' : 'opacity:0.5') + '">';
+      h += '<div style="font-size:13px;font-weight:600">' + shortLabel + '</div>';
+      h += '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px">' + o.cost.toLocaleString() + ' &#127827;</div>';
+      if(active) h += '<button onclick="redeemReward(\x27' + o.label + '\x27,' + o.cost + ')" style="width:100%;padding:6px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:600;cursor:pointer">Redeem</button>';
+      else h += '<button disabled style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:not-allowed">' + (pendMine ? 'Pending' : '&#128274;') + '</button>';
+      h += '</div>';
+    });
+    h += '</div>';
+  });
+  h += '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Tap a reward, enter the number to credit &mdash; an email opens to the Bank. Coins deduct after approval.</div>';
   h += '</div>';
 
   // Stats grid 2x2
