@@ -737,14 +737,13 @@ var PL_MATCHES = [
 var MAX_MW = 38;
 
 // ========== STATE ==========
-var state = { players: {}, predictions: {}, actuals: {}, redemptions: {} };
+var state = { players: {}, predictions: {}, actuals: {} };
 
 // Firebase listeners
 var stateRef = db.ref('pl2627');
 stateRef.child('players').on('value', function(snap) { state.players = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('predictions').on('value', function(snap) { state.predictions = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('actuals').on('value', function(snap) { state.actuals = snap.val() || {}; if(currentPlayer) render(); });
-stateRef.child('redemptions').on('value', function(snap) { state.redemptions = snap.val() || {}; if(currentPlayer) render(); });
 
 
 // Chat
@@ -1289,9 +1288,31 @@ function getBerryCoins(player) {
   if(player === currentPlayer && dailyClaimData) {
     loginB = dailyClaimData.totalLoginCoins || 0;
   }
-  return base + bonus + loginB;
+  return base + bonus + loginB - getApprovedSpent(player);
 }
 
+var REWARD_COSTS = { Airtime: 1000, Data: 1500 };
+
+function getApprovedSpent(player) {
+  var r = state.redemptions || {}, sum = 0;
+  Object.keys(r).forEach(function(k){ var x = r[k]; if(x && x.player === player && x.status === 'approved') sum += (x.cost || 0); });
+  return sum;
+}
+function getMyRedemptions(player) {
+  var r = state.redemptions || {}, out = [];
+  Object.keys(r).forEach(function(k){ var x = r[k]; if(x && x.player === player) out.push(Object.assign({ id: k }, x)); });
+  out.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
+  return out;
+}
+function getPendingRedemptions() {
+  var r = state.redemptions || {}, out = [];
+  Object.keys(r).forEach(function(k){ var x = r[k]; if(x && x.status === 'pending') out.push(Object.assign({ id: k }, x)); });
+  out.sort(function(a,b){ return (a.ts||0) - (b.ts||0); });
+  return out;
+}
+function hasPendingRedemption(player) {
+  return getMyRedemptions(player).some(function(x){ return x.status === 'pending'; });
+}
 
 
 function getSuffix(n) {
