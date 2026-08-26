@@ -312,6 +312,13 @@ var currentPlayer = null;
 var currentTab = 'dashboard';
 var currentLeague = 'pl';
 var currentMW = 1;
+function getCurrentMW() {
+  for(var mw = 1; mw <= 38; mw++) {
+    var mwm = PL_MATCHES.filter(function(m){ return m.mw === mw; });
+    if(mwm.some(function(m){ return Date.now() < getMatchTime(m).getTime(); })) return mw;
+  }
+  return 38;
+}
 var SIGNUP_CUTOFF = new Date('2026-08-21T20:00:00+01:00'); // signups close when PL starts
 function isSignupOpen() { return new Date() < SIGNUP_CUTOFF; }
 
@@ -944,6 +951,7 @@ function switchTab(tab) {
 // ========== RENDER ==========
 var _renderTimer;
 function render(immediate) {
+  if(!window._mwInit && currentPlayer) { window._mwInit = true; currentMW = getCurrentMW(); }
   if(!immediate) {
     if(_renderTimer) clearTimeout(_renderTimer);
     _renderTimer = setTimeout(function() { render(true); }, 100);
