@@ -367,24 +367,24 @@ var PL_MATCHES = [
   { id:10, mw:1, home:'Fulham', away:'Chelsea', date:'2026-08-24', time:'20:00' },
   // MW2-38
   { id:11, mw:2, home:'Bournemouth', away:'Everton', date:'2026-08-29', time:'15:00' },
-  { id:12, mw:2, home:'Aston Villa', away:'Arsenal', date:'2026-08-29', time:'15:00' },
-  { id:13, mw:2, home:'Chelsea', away:'Brighton', date:'2026-08-29', time:'15:00' },
+  { id:12, mw:2, home:'Aston Villa', away:'Arsenal', date:'2026-08-31', time:'20:00' },
+  { id:13, mw:2, home:'Chelsea', away:'Brighton', date:'2026-08-30', time:'14:00' },
   { id:14, mw:2, home:'Coventry', away:'Hull', date:'2026-08-29', time:'15:00' },
-  { id:15, mw:2, home:'Crystal Palace', away:'Man City', date:'2026-08-29', time:'15:00' },
-  { id:16, mw:2, home:'Leeds', away:'Brentford', date:'2026-08-29', time:'15:00' },
-  { id:17, mw:2, home:'Liverpool', away:'Nott Forest', date:'2026-08-29', time:'15:00' },
-  { id:18, mw:2, home:'Man Utd', away:'Ipswich', date:'2026-08-29', time:'15:00' },
-  { id:19, mw:2, home:'Sunderland', away:'Fulham', date:'2026-08-29', time:'15:00' },
-  { id:20, mw:2, home:'Tottenham', away:'Newcastle', date:'2026-08-29', time:'15:00' },
-  { id:21, mw:3, home:'Arsenal', away:'Chelsea', date:'2026-09-05', time:'15:00' },
+  { id:15, mw:2, home:'Crystal Palace', away:'Man City', date:'2026-08-28', time:'20:00' },
+  { id:16, mw:2, home:'Leeds', away:'Brentford', date:'2026-08-30', time:'14:00' },
+  { id:17, mw:2, home:'Liverpool', away:'Nott Forest', date:'2026-08-29', time:'12:30' },
+  { id:18, mw:2, home:'Man Utd', away:'Ipswich', date:'2026-08-30', time:'16:30' },
+  { id:19, mw:2, home:'Sunderland', away:'Fulham', date:'2026-08-30', time:'14:00' },
+  { id:20, mw:2, home:'Tottenham', away:'Newcastle', date:'2026-08-29', time:'17:30' },
+  { id:21, mw:3, home:'Arsenal', away:'Chelsea', date:'2026-09-06', time:'16:30' },
   { id:22, mw:3, home:'Brentford', away:'Sunderland', date:'2026-09-05', time:'15:00' },
   { id:23, mw:3, home:'Brighton', away:'Leeds', date:'2026-09-05', time:'15:00' },
-  { id:24, mw:3, home:'Everton', away:'Man Utd', date:'2026-09-05', time:'15:00' },
+  { id:24, mw:3, home:'Everton', away:'Man Utd', date:'2026-09-06', time:'14:00' },
   { id:25, mw:3, home:'Fulham', away:'Crystal Palace', date:'2026-09-05', time:'15:00' },
   { id:26, mw:3, home:'Hull', away:'Aston Villa', date:'2026-09-05', time:'15:00' },
   { id:27, mw:3, home:'Ipswich', away:'Liverpool', date:'2026-09-05', time:'15:00' },
   { id:28, mw:3, home:'Man City', away:'Coventry', date:'2026-09-05', time:'15:00' },
-  { id:29, mw:3, home:'Newcastle', away:'Bournemouth', date:'2026-09-05', time:'15:00' },
+  { id:29, mw:3, home:'Newcastle', away:'Bournemouth', date:'2026-09-05', time:'12:30' },
   { id:30, mw:3, home:'Nott Forest', away:'Tottenham', date:'2026-09-05', time:'15:00' },
   { id:31, mw:4, home:'Bournemouth', away:'Brentford', date:'2026-09-12', time:'15:00' },
   { id:32, mw:4, home:'Aston Villa', away:'Nott Forest', date:'2026-09-12', time:'15:00' },
@@ -894,7 +894,7 @@ function isLocked(m) {
 }
 
 function getMWMatches(mw) {
-  return PL_MATCHES.filter(function(m) { return m.mw === mw; });
+  return PL_MATCHES.filter(function(m) { return m.mw === mw; }).sort(function(a,b){ return getMatchTime(a) - getMatchTime(b); });
 }
 
 function calcPoints(pred, actual) {
