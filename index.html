@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <title>League Predictions Tracker</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9917;</text></svg>">
 <style>
@@ -737,13 +741,14 @@ var PL_MATCHES = [
 var MAX_MW = 38;
 
 // ========== STATE ==========
-var state = { players: {}, predictions: {}, actuals: {} };
+var state = { players: {}, predictions: {}, actuals: {}, redemptions: {} };
 
 // Firebase listeners
 var stateRef = db.ref('pl2627');
 stateRef.child('players').on('value', function(snap) { state.players = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('predictions').on('value', function(snap) { state.predictions = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('actuals').on('value', function(snap) { state.actuals = snap.val() || {}; if(currentPlayer) render(); });
+stateRef.child('redemptions').on('value', function(snap) { state.redemptions = snap.val() || {}; if(currentPlayer) render(); });
 
 
 // Chat
@@ -1317,6 +1322,7 @@ function hasPendingRedemption(player) {
 var BERRY_RATE = 10; // 1 BerryCoin = ₦10
 var REDEEM_OPTIONS = [
   { group:'Airtime', label:'₦500 airtime',  cost:50 },
+  { group:'Airtime', label:'₦500 airtime',  cost:50 },
   { group:'Airtime', label:'₦1,000 airtime', cost:100 },
   { group:'Data', label:'2GB data',  cost:200 },
   { group:'Data', label:'5GB data',  cost:500 },
@@ -1334,7 +1340,8 @@ window.redeemReward = function(label, cost) {
   if(!/^0\d{10}$/.test(phone)) { alert('Please enter a valid 11-digit number (e.g. 080XXXXXXXX).'); return; }
   if(!confirm('Redeem ' + label + ' for ' + cost.toLocaleString() + ' BerryCoins to ' + phone + '?\n\nCoins are deducted once an admin approves.')) return;
   var balanceAfter = bal - cost;
-  db.ref('pl2627/redemptions').push({ player: currentPlayer, reward: label, cost: cost, ts: Date.now(), status: 'pending' });
+   db.ref('pl2627/redemptions').push({ player: currentPlayer, reward: label, cost: cost, ts: Date.now(), status: 'pending' });
+  if(typeof render === 'function') render(true);
   var subject = 'BerryCoins redemption \u2014 ' + currentPlayer + ' \u2014 ' + label;
   var body = 'Player: ' + currentPlayer + '\nReward: ' + label + '\nCost: ' + cost + ' BerryCoins\nPhone to credit: ' + phone + '\nBalance after redemption: ' + balanceAfter + ' BerryCoins';
   window.location.href = 'mailto:' + REDEEM_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
