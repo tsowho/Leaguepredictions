@@ -240,8 +240,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
     <!-- Form area -->
     <div style="padding:24px">
       <div id="loginForm">
-        <input type="text" id="loginName" placeholder="Your name" autocomplete="off">
-        <input type="password" id="loginPin" placeholder="4-digit PIN" maxlength="4" inputmode="numeric">
+        <input type="text" id="loginName" placeholder="Your name" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+        <input type="password" id="loginPin" placeholder="4-digit PIN" maxlength="4" inputmode="numeric" onkeydown="if(event.key==='Enter')doLogin()">
         <button class="btn" onclick="doLogin()">Log In</button>
         <span class="toggle" onclick="toggleSignup()" id="signupToggle">New here? Sign up</span>
         <div id="loginError" class="error"></div>
