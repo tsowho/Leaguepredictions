@@ -348,6 +348,62 @@ window.showAirborneInfo = function(e) {
   if(e) e.stopPropagation();
   alert('\uD83E\uDE82 Berry First Airborne I\n\nFounding member — joined before kickoff.\nA permanent honour for the originals.');
 };
+var RANKS = [
+  { name:'Recruit',    min:0,   color:'#9aa9b4' },
+  { name:'Corporal',   min:25,  color:'#a8bfa0' },
+  { name:'Sergeant',   min:60,  color:'#8cb496' },
+  { name:'Lieutenant', min:110, color:'#78aadc' },
+  { name:'Captain',    min:175, color:'#9ec5f0' },
+  { name:'Major',      min:260, color:'#c8b4e6' },
+  { name:'Colonel',    min:370, color:'#d9b64a' },
+  { name:'General',    min:500, color:'#f5d76e' }
+];
+function getRank(pts) {
+  var r = RANKS[0];
+  for(var i = 0; i < RANKS.length; i++) { if(pts >= RANKS[i].min) r = RANKS[i]; }
+  return r;
+}
+function getNextRank(pts) {
+  for(var i = 0; i < RANKS.length; i++) { if(pts < RANKS[i].min) return RANKS[i]; }
+  return null;
+}
+function rankInsigniaSVG(rankName, color) {
+  var body = '';
+  if(rankName === 'Recruit')      body = '<circle cx="13" cy="13" r="3.5" fill="'+color+'"/>';
+  else if(rankName === 'Corporal')   body = '<path d="M7 13l6-3.5 6 3.5" stroke="'+color+'" stroke-width="2" fill="none"/>';
+  else if(rankName === 'Sergeant')   body = '<path d="M6 11l7-4 7 4M6 15l7-4 7 4" stroke="'+color+'" stroke-width="2" fill="none"/>';
+  else if(rankName === 'Lieutenant') body = '<rect x="11" y="7" width="3.2" height="12" rx="1" fill="'+color+'"/>';
+  else if(rankName === 'Captain')    body = '<rect x="8" y="7" width="3" height="12" rx="1" fill="'+color+'"/><rect x="15" y="7" width="3" height="12" rx="1" fill="'+color+'"/>';
+  else if(rankName === 'Major')      body = '<path d="M13 5l1.9 4 4.1.4-3 2.8.9 4-3.9-2.2-3.9 2.2.9-4-3-2.8 4.1-.4z" fill="'+color+'"/>';
+  else if(rankName === 'Colonel')    body = '<path d="M13 6l4 5-4 5-4-5z" fill="'+color+'"/>';
+  else if(rankName === 'General')    body = '<path d="M13 4l.9 1.9 2.1.2-1.6 1.4.5 2-1.9-1.1-1.9 1.1.5-2-1.6-1.4 2.1-.2z" fill="'+color+'"/><path d="M7 11l.6 1.3 1.4.1-1 .9.3 1.4L7 14.4l-1.3.7.3-1.4-1-.9 1.4-.1z" fill="'+color+'"/><path d="M19 11l.6 1.3 1.4.1-1 .9.3 1.4-1.3-.7-1.3.7.3-1.4-1-.9 1.4-.1z" fill="'+color+'"/>';
+  return '<svg width="18" height="18" viewBox="0 0 26 26" style="vertical-align:middle">' + body + '</svg>';
+}
+function rankBadge(player) {
+  var lb = getLeaderboard();
+  var me = lb.find(function(p){ return p.name === player; });
+  var pts = me ? me.total : 0;
+  var r = getRank(pts);
+  var nx = getNextRank(pts);
+  var tipMain = r.name.toUpperCase();
+  var tipSub = nx ? ('Next: ' + nx.name + ' at ' + nx.min + ' pts') : 'Top rank \u2014 the elite!';
+  var data = 'data-rank="' + tipMain + '" data-sub="' + tipSub + '" data-color="' + r.color + '"';
+  return '<span onclick="showRankInfo(event,this)" onmouseenter="showRankTip(this)" onmouseleave="hideRankTip()" ' + data + ' style="cursor:pointer;margin-right:5px" title="' + r.name + '">' + rankInsigniaSVG(r.name, r.color) + '</span>';
+}
+function showRankTip(el) {
+  var t = document.getElementById('rankTip');
+  if(!t) { t = document.createElement('div'); t.id = 'rankTip'; t.style.cssText = 'position:fixed;background:var(--card2,#1c2128);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:11px;line-height:1.5;z-index:9999;pointer-events:none;max-width:200px;box-shadow:0 6px 20px rgba(0,0,0,0.45)'; document.body.appendChild(t); }
+  t.innerHTML = '<div style="font-weight:700;color:' + el.getAttribute('data-color') + ';margin-bottom:2px">' + el.getAttribute('data-rank') + '</div><div style="color:var(--muted)">' + el.getAttribute('data-sub') + '</div>';
+  var r = el.getBoundingClientRect();
+  t.style.display = 'block';
+  t.style.left = Math.min(r.left, window.innerWidth - 210) + 'px';
+  t.style.top = (r.bottom + 6) + 'px';
+}
+function hideRankTip() { var t = document.getElementById('rankTip'); if(t) t.style.display = 'none'; }
+window.showRankInfo = function(e, el) {
+  if(e) e.stopPropagation();
+  alert(el.getAttribute('data-rank') + '\n\n' + el.getAttribute('data-sub') + '\n\nClimb by earning prediction points!');
+};
 
 var currentPlayer = null;
 var currentTab = 'dashboard';
@@ -1947,7 +2003,7 @@ renderLeaderboard = function() {
     var isMe = p.name === currentPlayer;
     h += '<div class="lb-card" style="' + (isMe ? 'border-color:var(--accent)' : '') + '">';
     h += '<span class="lb-pos ' + posClass + '">' + (i + 1) + '</span>';
-    h += '<span class="lb-name">' + p.name + (isMe ? ' &#128994;' : '') + founderStar(p.name) + streakBadge(p.name) + '</span>';
+    h += '<span class="lb-name">' + rankBadge(p.name) + p.name + (isMe ? ' &#128994;' : '') + founderStar(p.name) + streakBadge(p.name) + '</span>';;
     h += '<span class="lb-stat">' + p.exact + ' exact</span>';
     h += '<span class="lb-stat">' + p.correct + 'W ' + p.wrong + 'L</span>';
     h += '<span class="lb-dual"><div class="lb-pts-main">' + p.total + ' pts</div><div class="lb-coins">&#127827; ' + getBerryCoins(p.name) + '</div></span>';
