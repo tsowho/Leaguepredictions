@@ -907,10 +907,10 @@ function getMWMatches(mw) {
 function calcPoints(pred, actual) {
   if(!pred || pred.s1 === undefined || pred.s2 === undefined) return null;
   if(!actual || actual.s1 === undefined || actual.s2 === undefined) return null;
-  if(pred.s1 == actual.s1 && pred.s2 == actual.s2) return { pts: 3, type: 'exact' };
+  if(pred.s1 == actual.s1 && pred.s2 == actual.s2) return { pts: 5, type: 'exact' };
   var pRes = pred.s1 > pred.s2 ? 'H' : pred.s1 < pred.s2 ? 'A' : 'D';
   var aRes = actual.s1 > actual.s2 ? 'H' : actual.s1 < actual.s2 ? 'A' : 'D';
-  if(pRes === aRes) return { pts: 1, type: 'correct' };
+  if(pRes === aRes) return { pts: 2, type: 'correct' };
   return { pts: 0, type: 'wrong' };
 }
 
@@ -1329,12 +1329,12 @@ function hasPendingRedemption(player) {
 
 var BERRY_RATE = 10; // 1 BerryCoin = ₦10
 var REDEEM_OPTIONS = [
-  { group:'Airtime', label:'₦500 airtime',   cost:50 },
-  { group:'Airtime', label:'₦1,000 airtime', cost:100 },
-  { group:'Airtime', label:'₦2,000 airtime', cost:200 },
-  { group:'Data', label:'2GB data',  cost:200 },
-  { group:'Data', label:'5GB data',  cost:500 },
-  { group:'Data', label:'10GB data', cost:1000 }
+  { group:'Airtime', label:'₦500 airtime',   cost:75 },
+  { group:'Airtime', label:'₦1,000 airtime', cost:150 },
+  { group:'Airtime', label:'₦2,000 airtime', cost:300 },
+  { group:'Data', label:'2GB data',  cost:300 },
+  { group:'Data', label:'5GB data',  cost:750 },
+  { group:'Data', label:'10GB data', cost:1500 }
 ];
 var REDEEM_EMAIL = 'berrybank@agentmail.to';
 
@@ -1425,7 +1425,7 @@ function loadDailyClaim(cb) {
 
 function getLoginBonus(streak) {
   if(streak <= 0) return 0;
-  if(streak % 7 === 0) return 6;
+  if(streak % 7 === 0) return 2;
   return 1;
 }
 
