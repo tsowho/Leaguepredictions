@@ -205,7 +205,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .berry-marquee{background:rgba(0,136,204,0.12);padding:6px 0;overflow:hidden;border-bottom:1px solid rgba(0,136,204,0.2)}
 .berry-marquee a{text-decoration:none;display:flex;gap:40px;white-space:nowrap;font-size:11px;color:#29b6f6;width:max-content;animation:berryScroll 14s linear infinite}
 @keyframes berryScroll{0%{transform:translateX(0)}100%{transform:translateX(-33.33%)}}
+@keyframes giftPulse{0%,100%{box-shadow:0 0 0 rgba(29,158,117,0)}50%{box-shadow:0 0 16px rgba(29,158,117,0.5)}}
+@keyframes giftWobble{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+.reward-ready{background:linear-gradient(160deg,rgba(29,158,117,0.18),rgba(29,158,117,0.06)) !important;animation:giftPulse 1.8s ease-in-out infinite}
+.reward-ready .gift-ico{display:inline-block;animation:giftWobble 1.8s ease-in-out infinite}
+.howto-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:1000}
+.howto-overlay.open{display:flex}
+.howto-box{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:320px}
 </style>
+
 </head>
 <body>
 
@@ -1338,6 +1346,24 @@ var REDEEM_OPTIONS = [
 ];
 var REDEEM_EMAIL = 'berrybank@agentmail.to';
 
+window.showHowToEarn = function() {
+  var ov = document.getElementById('howToEarnOverlay');
+  if(ov) { ov.classList.add('open'); return; }
+  ov = document.createElement('div');
+  ov.id = 'howToEarnOverlay';
+  ov.className = 'howto-overlay open';
+  ov.onclick = function(e){ if(e.target === ov) ov.classList.remove('open'); };
+  ov.innerHTML = '<div class="howto-box">'
+    + '<div style="font-size:15px;font-weight:600;margin-bottom:12px">&#127827; How to earn BerryCoins</div>'
+    + '<div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:12px">'
+    + '<b style="color:var(--fg)">Predicting (the big earner):</b><br>&bull; Exact score &mdash; <b style="color:#1d9e75">5 &#127827;</b><br>&bull; Correct result &mdash; <b style="color:#1d9e75">2 &#127827;</b><br><br>'
+    + '<b style="color:var(--fg)">Daily login:</b><br>&bull; Each day &mdash; 1 &#127827; &middot; day 7 &mdash; 2 &#127827;<br><br>'
+    + '<span style="color:#e6a817">&#128161; One exact score beats a whole week of logging in. Predict every game to climb fastest!</span>'
+    + '</div>'
+    + '<button onclick="document.getElementById(\x27howToEarnOverlay\x27).classList.remove(\x27open\x27)" style="width:100%;padding:9px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Got it</button>'
+    + '</div>';
+  document.body.appendChild(ov);
+};
 window.redeemReward = function(label, cost) {
   var bal = getBerryCoins(currentPlayer);
   if(bal < cost) { alert('You need ' + cost.toLocaleString() + ' BerryCoins for ' + label + '.'); return; }
@@ -1653,7 +1679,7 @@ renderDashboard = function() {
     // Redeem rewards card — five options, per-tier locking
   var pendMine = hasPendingRedemption(currentPlayer);
   h += '<div style="background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2);border-radius:10px;padding:14px;margin-bottom:14px">';
-  h += '<div style="font-size:13px;font-weight:600;margin-bottom:2px">&#127873; Redeem rewards &#128522;</div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><div style="font-size:13px;font-weight:600">&#127873; Redeem rewards &#128522;</div><span onclick="showHowToEarn()" style="font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid var(--border);color:var(--blue);cursor:pointer">&#8505;&#65039; How to earn</span></div>';
   h += '<div style="font-size:10px;color:var(--muted);margin-bottom:10px">Rate: 1 &#127827; = &#8358;' + BERRY_RATE + ' &middot; your balance: ' + myCoins.toLocaleString() + ' &#127827;</div>';
   if(pendMine) h += '<div style="font-size:10px;color:#e6a817;text-align:center;margin-bottom:10px">&#9203; You have a pending request awaiting review</div>';
   ['Airtime','Data'].forEach(function(grp){
@@ -1664,7 +1690,8 @@ renderDashboard = function() {
       var afford = myCoins >= o.cost;
       var active = afford && !pendMine;
       var shortLabel = o.label.replace(' airtime','').replace(' data','');
-      h += '<div style="flex:1;background:rgba(255,255,255,0.04);border:1px solid ' + (afford ? 'rgba(29,158,117,0.3)' : 'rgba(255,255,255,0.08)') + ';border-radius:8px;padding:10px;text-align:center;' + (afford ? '' : 'opacity:0.5') + '">';
+      h += '<div class="' + (active ? 'reward-ready' : '') + '" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid ' + (afford ? 'rgba(29,158,117,0.3)' : 'rgba(255,255,255,0.08)') + ';border-radius:8px;padding:10px;text-align:center;' + (afford ? '' : 'opacity:0.5') + '">';
+      if(active) h += '<div class="gift-ico" style="font-size:18px;margin-bottom:2px">&#127873;</div>';
       h += '<div style="font-size:13px;font-weight:600">' + shortLabel + '</div>';
       h += '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px">' + o.cost.toLocaleString() + ' &#127827;</div>';
       if(active) h += '<button onclick="redeemReward(\x27' + o.label + '\x27,' + o.cost + ')" style="width:100%;padding:6px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:600;cursor:pointer">Redeem</button>';
