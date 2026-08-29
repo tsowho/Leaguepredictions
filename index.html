@@ -1170,7 +1170,7 @@ function renderPredict() {
       h += '<span class="match-result"><span class="score">' + actual.s1 + ' - ' + actual.s2 + '</span>';
       if(pred && pred.s1 !== undefined) {
         var r = calcPoints(pred, actual);
-        if(r) h += '<br><span class="pts pts-' + r.pts + '">' + (r.pts === 3 ? 'Exact! +3' : r.pts === 1 ? 'Correct +1' : 'Wrong 0') + '</span>';
+        if(r) h += '<br><span class="pts pts-' + r.pts + '">' + (r.pts >= 5 ? 'Exact! +5' : r.pts >= 2 ? 'Correct +2' : 'Wrong 0') + '</span>';
       }
       h += '</span>';
     } else if(locked) {
@@ -1253,7 +1253,7 @@ function renderResults() {
     h += '<span class="match-team away">' + teamLogo(m.away) + ' ' + m.away + '</span></div>';
     if(pred && pred.s1 !== undefined) {
       h += '<div class="match-prediction">You: ' + pred.s1 + ' - ' + pred.s2;
-      if(r) h += ' <span class="pts pts-' + r.pts + '" style="margin-left:6px">' + (r.pts === 3 ? '+3 Exact' : r.pts === 1 ? '+1' : '0') + '</span>';
+      if(r) h += ' <span class="pts pts-' + r.pts + '" style="margin-left:6px">' + (r.pts >= 5 ? '+5 Exact' : r.pts >= 2 ? '+2' : '0') + '</span>';
       h += '</div>';
     } else {
       h += '<div class="match-prediction" style="color:var(--red)">No prediction</div>';
@@ -2052,7 +2052,7 @@ renderPredict = function() {
       h += '<span class="match-result"><span class="score">' + actual.s1 + ' - ' + actual.s2 + '</span>';
       if(pred && pred.s1 !== undefined) {
         var r = calcPoints(pred, actual);
-        if(r) h += '<br><span class="pts pts-' + r.pts + '">' + (r.pts === 3 ? 'Exact! +3' : r.pts === 1 ? 'Correct +1' : 'Wrong 0') + '</span>';
+        if(r) h += '<br><span class="pts pts-' + r.pts + '">' + (r.pts >= 5 ? 'Exact! +5' : r.pts >= 2 ? 'Correct +2' : 'Wrong 0') + '</span>';
       }
       h += '</span>';
     } else {
