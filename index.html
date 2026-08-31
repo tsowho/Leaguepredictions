@@ -1774,7 +1774,7 @@ renderDashboard = function() {
   var pendMine = hasPendingRedemption(currentPlayer);
   h += '<div style="background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2);border-radius:10px;padding:14px;margin-bottom:14px">';
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><div style="font-size:13px;font-weight:600">&#127873; Redeem rewards &#128522;</div><span onclick="showHowToEarn()" style="font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid var(--border);color:var(--blue);cursor:pointer">&#8505;&#65039; How to earn</span></div>';
-  h += '<div style="font-size:10px;color:var(--muted);margin-bottom:10px">Rate: 1 &#127827; = &#8358;' + BERRY_RATE + ' &middot; your balance: ' + myCoins.toLocaleString() + ' &#127827;</div>';
+  h += '<div style="font-size:10px;color:var(--muted);margin-bottom:10px">Your balance: ' + myCoins.toLocaleString() + ' &#127827;</div>';
   if(pendMine) h += '<div style="font-size:10px;color:#e6a817;text-align:center;margin-bottom:10px">&#9203; You have a pending request awaiting review</div>';
   ['Airtime','Data'].forEach(function(grp){
     var icon = grp === 'Airtime' ? '&#128222;' : '&#128246;';
