@@ -75,9 +75,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .match-card { background: var(--card); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; border: 1px solid var(--border); }
 .match-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 10px; }
 .match-teams { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
-.match-team { font-size: 14px; font-weight: 500; width: 120px; line-height: 1.2; }}
-.match-team.home { text-align: right; }
-.match-team.away { text-align: left; }
+.match-team { font-size: 14px; font-weight: 500; width: 120px; line-height: 1.2; display: flex; align-items: center; gap: 5px; }
+.match-team.home { justify-content: flex-end; }
+.match-team.away { justify-content: flex-start; }
 .match-vs { font-size: 12px; color: var(--muted); }
 .match-inputs { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .match-inputs input { width: 48px; height: 40px; text-align: center; font-size: 18px; font-weight: 600; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--fg); outline: none; }
@@ -127,7 +127,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
 /* Responsive */
 @media (max-width: 400px) {
-  .match-team { width: 100px; font-size: 13px; line-height: 1.2; }
+  .match-team { width: 100px; font-size: 13px; line-height: 1.2; display: flex; align-items: center; gap: 4px; }
   .match-inputs input { width: 42px; height: 36px; font-size: 16px; }
 }
 
