@@ -75,7 +75,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .match-card { background: var(--card); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; border: 1px solid var(--border); }
 .match-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 10px; }
 .match-teams { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
-.match-team { font-size: 14px; font-weight: 500; min-width: 100px; }
+.match-team { font-size: 14px; font-weight: 500; width: 120px; line-height: 1.2; }}
 .match-team.home { text-align: right; }
 .match-team.away { text-align: left; }
 .match-vs { font-size: 12px; color: var(--muted); }
@@ -127,7 +127,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 
 /* Responsive */
 @media (max-width: 400px) {
-  .match-team { min-width: 80px; font-size: 13px; }
+  .match-team { width: 100px; font-size: 13px; line-height: 1.2; }
   .match-inputs input { width: 42px; height: 36px; font-size: 16px; }
 }
 
@@ -1093,7 +1093,7 @@ function render(immediate) {
   if(currentLeague === 'cl') {
     switch(currentTab) {
       case 'predict': h += renderCLPredict(); break;
-      case 'leaderboard': h += '<div class="card" style="text-align:center;padding:30px 20px;color:var(--muted)">Champions League leaderboard coming soon &#11088;</div>'; break;
+      case 'leaderboard': h += renderCLLeaderboard(); break;
       case 'results': h += renderCLResults(); break;
       default: h += '<div class="card" style="text-align:center;padding:30px 20px"><div style="font-size:40px;margin-bottom:12px">&#11088;</div><div style="font-size:16px;font-weight:600;margin-bottom:6px">Champions League 2026/27</div><div style="font-size:13px;color:var(--muted);line-height:1.6">Matchday 1 kicks off <strong>8&ndash;10 September</strong>.<br>Tap <strong>Predict</strong> to make your picks! &#11088;</div></div>';
     }
@@ -1352,6 +1352,53 @@ function changeMD(dir) {
   render();
 }
 
+
+function getCLLeaderboard() {
+  var players = Object.keys(state.players);
+  var lb = players.map(function(name) {
+    var preds = state.cl_predictions[name] || {};
+    var total = 0, exact = 0, correct = 0, wrong = 0, predicted = 0;
+    CL_MATCHES.forEach(function(m) {
+      var actual = state.cl_actuals['m' + m.id];
+      var pred = preds['m' + m.id];
+      if(!actual || actual.s1 === undefined) return;
+      if(!pred || pred.s1 === undefined) return;
+      predicted++;
+      var r = calcPoints(pred, actual);
+      if(r) {
+        total += r.pts;
+        if(r.type === 'exact') exact++;
+        else if(r.type === 'correct') correct++;
+        else wrong++;
+      }
+    });
+    return { name: name, total: total, exact: exact, correct: correct, wrong: wrong, predicted: predicted };
+  });
+  lb.sort(function(a, b) { return b.total - a.total || b.exact - a.exact || a.name.localeCompare(b.name); });
+  return lb;
+}
+function renderCLLeaderboard() {
+  var h = '';
+  h += '<div class="header"><h2>&#11088; CL Leaderboard</h2></div>';
+  var lb = getCLLeaderboard();
+  var anyCL = lb.some(function(p){ return p.predicted > 0; });
+  if(!anyCL) {
+    h += '<div class="card" style="text-align:center;padding:30px 20px;color:var(--muted)">No Champions League results yet.<br>The table fills in once Matchday 1 games are played &#11088;</div>';
+    return h;
+  }
+  lb.forEach(function(p, i) {
+    var posClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+    var isMe = p.name === currentPlayer;
+    h += '<div class="lb-card" style="' + (isMe ? 'border-color:var(--accent)' : '') + '">';
+    h += '<span class="lb-pos ' + posClass + '">' + (i + 1) + '</span>';
+    h += '<span class="lb-name">' + p.name + (isMe ? ' &#128994;' : '') + founderStar(p.name) + '</span>';
+    h += '<span class="lb-stat">' + p.exact + ' exact</span>';
+    h += '<span class="lb-stat">' + p.correct + 'W ' + p.wrong + 'L</span>';
+    h += '<span class="lb-dual"><div class="lb-pts-main">' + p.total + ' pts</div></span>';
+    h += '</div>';
+  });
+  return h;
+}
 function saveCLActual(matchId) {
   if(currentPlayer !== ADMIN) return;
   var s1 = document.getElementById('cl_actual_s1_' + matchId).value;
@@ -1376,18 +1423,18 @@ function renderCLResults() {
     var pred = myPreds['m' + m.id];
     h += '<div class="match-card">';
     h += '<div class="match-teams"><span class="match-team home">' + m.home + '</span>';
-    if(actual && actual.s1 !== undefined) {
-      h += '<span class="match-result"><span class="score">' + actual.s1 + ' - ' + actual.s2 + '</span></span>';
+        if(actual && actual.s1 !== undefined) {
+      h += '<span class="match-result" style="width:60px;text-align:center;display:inline-block"><span class="score">' + actual.s1 + ' - ' + actual.s2 + '</span></span>';
     } else {
-      h += '<span class="match-result"><span style="font-size:12px;color:var(--muted)">vs</span></span>';
+      h += '<span class="match-result" style="width:60px;text-align:center;display:inline-block"><span style="font-size:12px;color:var(--muted)">vs</span></span>';
     }
     h += '<span class="match-team away">' + m.away + '</span></div>';
     if(currentPlayer === ADMIN) {
-      h += '<div class="match-inputs" style="justify-content:center;margin-top:8px">';
+      h += '<div class="match-inputs" style="justify-content:center;margin-top:8px;position:relative">';
       h += '<input type="number" min="0" id="cl_actual_s1_' + m.id + '" value="' + (actual && actual.s1 !== undefined ? actual.s1 : '') + '" style="width:50px">';
       h += '<span class="dash">-</span>';
       h += '<input type="number" min="0" id="cl_actual_s2_' + m.id + '" value="' + (actual && actual.s2 !== undefined ? actual.s2 : '') + '" style="width:50px">';
-      h += '<button class="btn-save" onclick="saveCLActual(' + m.id + ')" style="margin-left:8px">Save</button>';
+      h += '<button class="btn-save" onclick="saveCLActual(' + m.id + ')" style="position:absolute;right:16px">Save</button>';
       h += '</div>';
     }
     if(pred && pred.s1 !== undefined) {
@@ -1454,8 +1501,6 @@ function saveActual(matchId) {
   var s1 = document.getElementById('actual_s1_' + matchId).value;
   var s2 = document.getElementById('actual_s2_' + matchId).value;
   if(s1 === '' || s2 === '' || isNaN(s1) || isNaN(s2)) { alert('Enter both scores'); return; }
-  if(!confirm('Save result?')) return;
-  db.ref('pl2627/cl_actuals/m' + matchId).set({ s1: parseInt(s1), s2: parseInt(s2) });
   if(!confirm('Save result?')) return;
   db.ref('pl2627/actuals/m' + matchId).set({ s1: parseInt(s1), s2: parseInt(s2) });
 }
