@@ -504,7 +504,7 @@ var PL_MATCHES = [
   { id:38, mw:4, home:'Man Utd', away:'Man City', date:'2026-09-12', time:'15:00' },
   { id:39, mw:4, home:'Sunderland', away:'Arsenal', date:'2026-09-12', time:'15:00' },
   { id:40, mw:4, home:'Tottenham', away:'Everton', date:'2026-09-12', time:'15:00' },
-  { id:41, mw:5, home:'Bournemouth', away:'Liverpool', date:'2026-09-20', time:'14:00' },
+    { id:41, mw:5, home:'Bournemouth', away:'Liverpool', date:'2026-09-20', time:'14:00' },
   { id:42, mw:5, home:'Brentford', away:'Chelsea', date:'2026-09-18', time:'20:00' },
   { id:43, mw:5, home:'Brighton', away:'Arsenal', date:'2026-09-19', time:'15:00' },
   { id:44, mw:5, home:'Everton', away:'Ipswich', date:'2026-09-19', time:'15:00' },
@@ -1020,7 +1020,9 @@ function fmtDate(d) {
 }
 
 function isLocked(m) {
-  return Date.now() >= getMatchTime(m).getTime();
+  if(state.actuals && state.actuals['m' + m.id] && state.actuals['m' + m.id].s1 !== undefined) return true;
+  if(state.cl_actuals && state.cl_actuals['m' + m.id] && state.cl_actuals['m' + m.id].s1 !== undefined) return true;
+  return Date.now() >= (getMatchTime(m).getTime() - 600000);
 }
 
 function getMWMatches(mw) {
