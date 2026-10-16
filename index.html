@@ -879,6 +879,7 @@ stateRef.child('predictions').on('value', function(snap) { state.predictions = s
 stateRef.child('actuals').on('value', function(snap) { state.actuals = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('cl_predictions').on('value', function(snap) { state.cl_predictions = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('cl_actuals').on('value', function(snap) { state.cl_actuals = snap.val() || {}; if(currentPlayer) render(); });;
+stateRef.child('redemptions').on('value', function(snap) { state.redemptions = snap.val() || {}; if(currentPlayer) render(); });
 
 
 // Chat
