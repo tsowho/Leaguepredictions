@@ -1598,7 +1598,7 @@ var REWARD_COSTS = { Airtime: 1000, Data: 1500 };
 
 function getApprovedSpent(player) {
   var r = state.redemptions || {}, sum = 0;
-  Object.keys(r).forEach(function(k){ var x = r[k]; if(x && x.player === player && x.status === 'approved') sum += (x.cost || 0); });
+  Object.keys(r).forEach(function(k){ var x = r[k]; if(x && x.player === player && (x.status === 'approved' || x.status === 'fulfilled')) sum += (x.cost || 0); });
   return sum;
 }
 function getMyRedemptions(player) {
