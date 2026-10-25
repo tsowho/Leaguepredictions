@@ -2091,7 +2091,7 @@ renderDashboard = function() {
       var isMe = p.name === currentPlayer;
       h += '<div class="lb-card' + (isMe ? ' lb-me' : '') + '"><span class="lb-pos ' + posClass + '">' + (i + 1) + '</span>';
       h += '<span class="lb-name">' + p.name + (isMe ? '<span class="lb-you">you</span>' : '') + streakBadge(p.name) + '</span>';
-      h += '<span class="lb-dual"><div class="lb-pts-main">' + p.total + ' pts</div><div class="lb-coins">&#127827; ' + getBerryCoins(p.name) + '</div></span></div>';
+      h += '<span class="lb-dual"><div class="lb-pts-main">' + p.total + ' pts</div><div class="lb-coins">&#127827; ' + Math.max(0, getBerryCoins(p.name)) + '</div></span></div>';
     });
     if(lb.length > 5) h += '<div style="text-align:center;padding:8px"><span style="color:var(--blue);font-size:13px;cursor:pointer" onclick="switchTab(\x27leaderboard\x27)">View all &#8594;</span></div>';
   }
@@ -2199,7 +2199,7 @@ renderLeaderboard = function() {
     h += '<span class="lb-name">' + rankBadge(p.name) + p.name + (isMe ? ' &#128994;' : '') + founderStar(p.name) + streakBadge(p.name) + '</span>';;
     h += '<span class="lb-stat">' + p.exact + ' exact</span>';
     h += '<span class="lb-stat">' + p.correct + 'W ' + p.wrong + 'L</span>';
-    h += '<span class="lb-dual"><div class="lb-pts-main">' + p.total + ' pts</div><div class="lb-coins">&#127827; ' + getBerryCoins(p.name) + '</div></span>';
+    h += '<span class="lb-dual"><div class="lb-pts-main">' + p.total + ' pts</div><div class="lb-coins">&#127827; ' + Math.max(0, getBerryCoins(p.name)) + '</div></span>';
     h += '</div>';
   });
   return h;
