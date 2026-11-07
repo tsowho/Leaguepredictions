@@ -9,24 +9,15 @@
 <meta http-equiv="Pragma" content="no-cache">
 <title>League Predictions Tracker</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9917;</text></svg>">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+
 :root {
-  --bg: #0f1923;
-  --card: #1a2733;
-  --card2: #223344;
-  --fg: #e8eaed;
-  --muted: #8899aa;
-  --accent: #1d9e75;
-  --accent2: #17805e;
-  --blue: #378ADD;
-  --amber: #e6a817;
-  --red: #e24b4a;
-  --border: #2a3a4a;
-  --input-bg: #15202b;
-  --pl-color: #3d195b;
-  --pl-accent: #00ff85;
-  --cl-color: #0b1560;
-  --cl-accent: #ffd700;
+  --bg:#070d13; --card:#111a22; --card2:#0f1720; --fg:#e8eef0; --muted:#73858f;
+  --accent:#2fd39b; --accent2:#1d9e75; --blue:#5aa2e0; --amber:#f3c04b; --red:#e24b4a;
+  --border:#1e2a33; --input-bg:#0b1218; --me:rgba(47,211,155,.08); --meb:rgba(47,211,155,.25);
+  --pl-color:#3d195b; --pl-accent:#00ff85; --cl-color:#0b1560; --cl-accent:#ffd700;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--fg); min-height: 100vh; }
@@ -216,6 +207,59 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .pts-2 { background:rgba(29,158,117,0.18); color:#1d9e75; }
 .pts-0 { background:rgba(226,75,74,0.18); color:#e24b4a; }
 .match-prediction .pts { margin-left:4px; }
+
+
+/* ===================== REFINED DARK — additions ===================== */
+body { font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
+#app { min-height:100vh; }
+.sidebar { display:none; }
+.main { }
+@media (min-width:900px){
+  #app { display:flex; }
+  .sidebar { display:flex; flex-direction:column; width:248px; flex-shrink:0; position:fixed; left:0; top:0; bottom:0; background:var(--card2); border-right:1px solid var(--border); padding:24px 16px; z-index:50; }
+  .main { flex:1; margin-left:248px; min-width:0; }
+  .container { max-width:1120px !important; margin:0 !important; padding:26px 32px 48px !important; }
+  .nav { display:none !important; }
+}
+.sb-logo { display:flex; align-items:center; gap:12px; padding:0 8px 22px; }
+.sb-logo .mk { width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:22px; }
+.sb-logo .n1 { font-size:18px; font-weight:800; } .sb-logo .n2 { font-size:11px; color:var(--muted); font-weight:600; margin-top:1px; }
+.sb-nav { display:flex; flex-direction:column; gap:4px; margin-top:6px; }
+.sb-nav .tab { display:flex; align-items:center; gap:13px; padding:12px 14px; border-radius:12px; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer; }
+.sb-nav .tab .tab-icon { font-size:18px; width:22px; text-align:center; }
+.sb-nav .tab.active { background:var(--me); color:var(--accent); border:1px solid var(--meb); }
+.sb-spacer { flex:1; }
+.sb-user { display:flex; align-items:center; gap:11px; padding:14px 8px 0; margin-top:10px; border-top:1px solid var(--border); }
+.sb-user .av { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#06231a; display:flex; align-items:center; justify-content:center; font-weight:800; }
+.sb-user .nm { font-size:13px; font-weight:700; } .sb-user .rl { font-size:11px; color:var(--muted); cursor:pointer; }
+/* refined radii */
+.card,.stat-box,.match-card,.wallet-card,.stat-card { border-radius:16px !important; }
+.deadline-banner { border-radius:14px !important; }
+/* leaderboard table */
+.lbt-wrap { background:var(--card); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+.lbt { width:100%; border-collapse:collapse; }
+.lbt thead th { font-size:11px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.04em; text-align:left; padding:13px 14px; border-bottom:1px solid var(--border); }
+.lbt th.c,.lbt td.c { text-align:center; } .lbt th.r,.lbt td.r { text-align:right; }
+.lbt tbody td { padding:12px 14px; border-bottom:1px solid var(--border); font-size:14px; }
+.lbt tbody tr:last-child td { border-bottom:none; }
+.lbt tbody tr.me td { background:var(--me); }
+.lbt .pcell { display:flex; align-items:center; gap:11px; }
+.lbt .posn { font-size:16px; font-weight:900; color:var(--muted); width:22px; text-align:center; } .lbt .posn.g { color:var(--amber); }
+.lbt .crest { width:32px; height:32px; border-radius:9px; background:#2a3744; color:#9fe9cf; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex-shrink:0; }
+.lbt .crest.me { background:var(--accent2); color:#fff; }
+.lbt .pname { font-weight:700; } .lbt .prank { font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; margin-top:1px; }
+.lbt .big { font-size:17px; font-weight:900; } .lbt .big.g { color:var(--accent); }
+@media (max-width:760px){ .lbt .hide-sm { display:none; } .lbt thead th,.lbt tbody td { padding:11px 8px; } }
+/* rank strip */
+.rankstrip { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px 18px; margin-bottom:16px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+.rankstrip .badge { width:50px; height:50px; border-radius:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.rankstrip .lab { font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+.rankstrip .nm { font-size:18px; font-weight:800; }
+.rankstrip .bar { height:9px; background:var(--input-bg); border-radius:5px; overflow:hidden; margin-top:7px; }
+.rankstrip .bar > div { height:100%; border-radius:5px; }
+.rankstrip .meta { font-size:12px; color:var(--muted); font-weight:600; }
+@media (min-width:900px){ .chat-fab { bottom:24px; right:24px; } .chat-panel { bottom:24px; right:24px; } }
+
 </style>
 
 </head>
@@ -279,11 +323,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 </div>
 
 <div id="app" style="display:none">
+  <aside class="sidebar">
+    <div class="sb-logo"><div class="mk">&#9917;</div><div><div class="n1">Berry Predictions</div><div class="n2">Premier League 26/27</div></div></div>
+    <nav class="sb-nav">
+      <div class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="tab-icon">&#127968;</span>Dashboard</div>
+      <div class="tab" data-tab="predict" onclick="switchTab('predict')"><span class="tab-icon">&#9917;</span>Predict</div>
+      <div class="tab" data-tab="leaderboard" onclick="switchTab('leaderboard')"><span class="tab-icon">&#127942;</span>Leaderboard</div>
+      <div class="tab" data-tab="results" onclick="switchTab('results')"><span class="tab-icon">&#128202;</span>Results</div>
+      <div class="tab" data-tab="players" onclick="switchTab('players')"><span class="tab-icon">&#128101;</span>Players</div>
+    </nav>
+    <div class="sb-spacer"></div>
+    <div class="sb-user"><div class="av" id="sbAvatar">B</div><div><div class="nm" id="sbName">Player</div><div class="rl" onclick="logout()">Log out</div></div></div>
+  </aside>
+  <div class="main">
   <div class="container" id="content">
     <div style="text-align:center;padding:60px 20px;color:var(--muted)">
       <div style="font-size:28px;margin-bottom:12px">&#9917;</div>
       <div>Loading...</div>
     </div>
+  </div>
   </div>
 
 <!-- Floating Chat -->
@@ -1082,7 +1140,7 @@ function getLeaderboard() {
 // ========== TABS ==========
 function switchTab(tab) {
   currentTab = tab;
-  document.querySelectorAll('.nav .tab').forEach(function(t) {
+  document.querySelectorAll('[data-tab]').forEach(function(t) {
     t.classList.toggle('active', t.getAttribute('data-tab') === tab);
   });
   render();
@@ -1098,6 +1156,8 @@ function render(immediate) {
     return;
   }
   if(!currentPlayer) return;
+  var sbN = document.getElementById('sbName'); if(sbN) sbN.textContent = currentPlayer;
+  var sbA = document.getElementById('sbAvatar'); if(sbA) sbA.textContent = (currentPlayer[0] || '?').toUpperCase();
   var c = document.getElementById('content');
   var h = '';
 
@@ -1139,15 +1199,26 @@ function renderDashboard() {
 
   // Stats
   var lb = getLeaderboard();
-  var me = lb.find(function(p) { return p.name === currentPlayer; }) || { total:0, exact:0, predicted:0 };
+  var me = lb.find(function(p) { return p.name === currentPlayer; }) || { total:0, exact:0, predicted:0, correct:0 };
   var myPos = lb.findIndex(function(p) { return p.name === currentPlayer; }) + 1;
 
+  var coins = Math.max(0, getBerryCoins(currentPlayer));
+  var accPct = me.predicted > 0 ? Math.round(((me.correct || 0) / me.predicted) * 100) : 0;
   h += '<div class="stats-row">';
-  h += '<div class="stat-box"><div class="stat-num">' + me.total + '</div><div class="stat-label">Points</div></div>';
-  h += '<div class="stat-box"><div class="stat-num">' + me.exact + '</div><div class="stat-label">Exact</div></div>';
-  h += '<div class="stat-box"><div class="stat-num">' + (myPos || '-') + '</div><div class="stat-label">Position</div></div>';
-  h += '<div class="stat-box"><div class="stat-num">' + me.predicted + '</div><div class="stat-label">Predicted</div></div>';
+  h += '<div class="stat-box"><div class="stat-num">' + (myPos || '-') + '</div><div class="stat-label">Rank</div></div>';
+  h += '<div class="stat-box"><div class="stat-num" style="color:var(--accent)">' + me.total + '</div><div class="stat-label">Points</div></div>';
+  h += '<div class="stat-box"><div class="stat-num" style="color:var(--accent)">&#127827; ' + coins + '</div><div class="stat-label">BerryCoins</div></div>';
+  h += '<div class="stat-box"><div class="stat-num">' + accPct + '%</div><div class="stat-label">Accuracy</div></div>';
   h += '</div>';
+  var rk = getRank(me.total); var nx = getNextRank(me.total);
+  var rpct = nx ? Math.max(6, Math.min(100, Math.round(((me.total - rk.min) / (nx.min - rk.min)) * 100))) : 100;
+  h += '<div class="rankstrip">';
+  h += '<div class="badge" style="background:rgba(255,255,255,.04);border:1px solid ' + rk.color + '55">' + rankInsigniaSVG(rk.name, rk.color) + '</div>';
+  h += '<div style="min-width:118px"><div class="lab">Your rank</div><div class="nm" style="color:' + rk.color + '">' + rk.name + '</div></div>';
+  h += '<div style="flex:1;min-width:0"><div class="meta" style="display:flex;justify-content:space-between;gap:10px"><span>' + me.total + ' pts</span>' + (nx ? '<span>Next: ' + nx.name + ' at ' + nx.min + ' pts</span>' : '<span>Top rank!</span>') + '</div>';
+  h += '<div class="bar"><div style="width:' + rpct + '%;background:' + rk.color + '"></div></div>';
+  if(nx) h += '<div class="meta" style="margin-top:6px">' + (nx.min - me.total) + ' points to promotion</div>';
+  h += '</div></div>';
 
   // Next matchweek deadline
   var nextMW = getMWMatches(currentMW);
@@ -1273,17 +1344,26 @@ function renderLeaderboard() {
     return h;
   }
 
+  h += '<div class="lbt-wrap"><table class="lbt"><thead><tr>';
+  h += '<th>Player</th><th class="c hide-sm">Played</th><th class="c">Exact</th><th class="c hide-sm">Acc</th><th class="c">&#127827; Coins</th><th class="r">Points</th>';
+  h += '</tr></thead><tbody>';
   lb.forEach(function(p, i) {
-    var posClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     var isMe = p.name === currentPlayer;
-    h += '<div class="lb-card" style="' + (isMe ? 'border-color:var(--accent)' : '') + '">';
-    h += '<span class="lb-pos ' + posClass + '">' + (i + 1) + '</span>';
-    h += '<span class="lb-name">' + p.name + (isMe ? ' &#128994;' : '') + '</span>';
-    h += '<span class="lb-stat">' + p.exact + ' exact</span>';
-    h += '<span class="lb-stat">' + p.correct + 'W ' + p.wrong + 'L</span>';
-    h += '<span class="lb-pts">' + p.total + '</span>';
-    h += '</div>';
+    var rk = getRank(p.total);
+    var acc = p.predicted > 0 ? Math.round((p.correct / p.predicted) * 100) : 0;
+    var coins = Math.max(0, getBerryCoins(p.name));
+    h += '<tr' + (isMe ? ' class="me"' : '') + '>';
+    h += '<td><div class="pcell"><span class="posn' + (i === 0 ? ' g' : '') + '">' + (i + 1) + '</span>';
+    h += '<span class="crest' + (isMe ? ' me' : '') + '">' + (p.name[0] || '?').toUpperCase() + '</span>';
+    h += '<div><div class="pname">' + p.name + '</div><div class="prank" style="color:' + rk.color + '">' + rankBadge(p.name) + rk.name + '</div></div></div></td>';
+    h += '<td class="c hide-sm">' + p.predicted + '</td>';
+    h += '<td class="c">' + p.exact + '</td>';
+    h += '<td class="c hide-sm">' + acc + '%</td>';
+    h += '<td class="c" style="font-weight:800;color:' + (coins > 0 ? 'var(--accent)' : 'var(--muted)') + '">' + coins + '</td>';
+    h += '<td class="r"><span class="big' + (isMe ? ' g' : '') + '">' + p.total + '</span></td>';
+    h += '</tr>';
   });
+  h += '</tbody></table></div>';
   return h;
 }
 
@@ -2009,6 +2089,17 @@ renderDashboard = function() {
   h += '</div></div>';
   syncBerryCoins();
 
+  // Rank progress strip
+  var _rk = getRank(me.total); var _nx = getNextRank(me.total);
+  var _rpct = _nx ? Math.max(6, Math.min(100, Math.round(((me.total - _rk.min) / (_nx.min - _rk.min)) * 100))) : 100;
+  h += '<div class="rankstrip">';
+  h += '<div class="badge" style="background:rgba(255,255,255,.04);border:1px solid ' + _rk.color + '55">' + rankInsigniaSVG(_rk.name, _rk.color) + '</div>';
+  h += '<div style="min-width:118px"><div class="lab">Your rank</div><div class="nm" style="color:' + _rk.color + '">' + _rk.name + '</div></div>';
+  h += '<div style="flex:1;min-width:150px"><div class="meta" style="display:flex;justify-content:space-between;gap:10px"><span>' + me.total + ' pts</span>' + (_nx ? '<span>Next: ' + _nx.name + ' at ' + _nx.min + ' pts</span>' : '<span>Top rank!</span>') + '</div>';
+  h += '<div class="bar"><div style="width:' + _rpct + '%;background:' + _rk.color + '"></div></div>';
+  if(_nx) h += '<div class="meta" style="margin-top:6px">' + (_nx.min - me.total) + ' points to promotion</div>';
+  h += '</div></div>';
+
     // Redeem rewards card — five options, per-tier locking
   var pendMine = hasPendingRedemption(currentPlayer);
   h += '<div style="background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2);border-radius:10px;padding:14px;margin-bottom:14px">';
@@ -2242,17 +2333,26 @@ renderLeaderboard = function() {
     return h;
   }
 
+  h += '<div class="lbt-wrap"><table class="lbt"><thead><tr>';
+  h += '<th>Player</th><th class="c hide-sm">Played</th><th class="c">Exact</th><th class="c hide-sm">Acc</th><th class="c">&#127827; Coins</th><th class="r">Points</th>';
+  h += '</tr></thead><tbody>';
   lb.forEach(function(p, i) {
-    var posClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
     var isMe = p.name === currentPlayer;
-    h += '<div class="lb-card" style="' + (isMe ? 'border-color:var(--accent)' : '') + '">';
-    h += '<span class="lb-pos ' + posClass + '">' + (i + 1) + '</span>';
-    h += '<span class="lb-name">' + rankBadge(p.name) + p.name + (isMe ? ' &#128994;' : '') + founderStar(p.name) + streakBadge(p.name) + '</span>';;
-    h += '<span class="lb-stat">' + p.exact + ' exact</span>';
-    h += '<span class="lb-stat">' + p.correct + 'W ' + p.wrong + 'L</span>';
-    h += '<span class="lb-dual"><div class="lb-pts-main">' + p.total + ' pts</div><div class="lb-coins">&#127827; ' + Math.max(0, getBerryCoins(p.name)) + '</div></span>';
-    h += '</div>';
+    var rk = getRank(p.total);
+    var acc = p.predicted > 0 ? Math.round((p.correct / p.predicted) * 100) : 0;
+    var coins = Math.max(0, getBerryCoins(p.name));
+    h += '<tr' + (isMe ? ' class="me"' : '') + '>';
+    h += '<td><div class="pcell"><span class="posn' + (i === 0 ? ' g' : '') + '">' + (i + 1) + '</span>';
+    h += '<span class="crest' + (isMe ? ' me' : '') + '">' + (p.name[0] || '?').toUpperCase() + '</span>';
+    h += '<div><div class="pname">' + p.name + founderStar(p.name) + streakBadge(p.name) + '</div><div class="prank" style="color:' + rk.color + '">' + rankBadge(p.name) + rk.name + '</div></div></div></td>';
+    h += '<td class="c hide-sm">' + p.predicted + '</td>';
+    h += '<td class="c">' + p.exact + '</td>';
+    h += '<td class="c hide-sm">' + acc + '%</td>';
+    h += '<td class="c" style="font-weight:800;color:' + (coins > 0 ? 'var(--accent)' : 'var(--muted)') + '">' + coins + '</td>';
+    h += '<td class="r"><span class="big' + (isMe ? ' g' : '') + '">' + p.total + '</span></td>';
+    h += '</tr>';
   });
+  h += '</tbody></table></div>';
   return h;
 };
 
