@@ -480,7 +480,11 @@ function getCurrentMW() {
   return 38;
 }
 var SIGNUP_CUTOFF = new Date('2026-08-21T20:00:00+01:00'); // signups close when PL starts
-function isSignupOpen() { return new Date() < SIGNUP_CUTOFF; }
+function isSignupOpen() {
+  if(state.config && state.config.signupGate === 'open') return true;
+  if(state.config && state.config.signupGate === 'closed') return false;
+  return new Date() < SIGNUP_CUTOFF;
+}
 
 // ========== PL 2026/27 MATCHES ==========
 var PL_TEAMS = [
@@ -929,7 +933,7 @@ var CL_MATCHES = [
 var MAX_MW = 38;
 
 // ========== STATE ==========
-var state = { players: {}, predictions: {}, actuals: {}, redemptions: {}, cl_predictions: {}, cl_actuals: {}, loginStreaks: {}, manualLock: {} };
+var state = { players: {}, predictions: {}, actuals: {}, redemptions: {}, cl_predictions: {}, cl_actuals: {}, loginStreaks: {}, manualLock: {}, config: {} };
 
 // Firebase listeners
 var stateRef = db.ref('pl2627');
@@ -941,6 +945,7 @@ stateRef.child('cl_actuals').on('value', function(snap) { state.cl_actuals = sna
 stateRef.child('redemptions').on('value', function(snap) { state.redemptions = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('loginStreaks').on('value', function(snap) { state.loginStreaks = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('manualLock').on('value', function(snap) { state.manualLock = snap.val() || {}; if(currentPlayer) render(); });
+stateRef.child('config').on('value', function(snap) { state.config = snap.val() || {}; if(currentPlayer) render(); });
 
 
 // Chat
@@ -1036,11 +1041,19 @@ function updateLoginCountdown() {
   var now = new Date();
   var diff = SIGNUP_CUTOFF - now;
   if(diff <= 0) {
-    label.textContent = 'Season has started!';
-    el.textContent = 'Predictions are live';
-    el.style.color = '#e6a817';
-    if(toggle) toggle.style.display = 'none';
-    if(btn) { btn.textContent = 'Signups Closed'; btn.disabled = true; btn.style.opacity = '0.4'; }
+    if(isSignupOpen()) {
+      label.textContent = 'Mid season signups are OPEN';
+      el.textContent = 'Join now!';
+      el.style.color = '#1d9e75';
+      if(toggle) toggle.style.display = '';
+      if(btn) { btn.textContent = 'Join the Game'; btn.disabled = false; btn.style.opacity = '1'; }
+    } else {
+      label.textContent = 'Season has started!';
+      el.textContent = 'Predictions are live';
+      el.style.color = '#e6a817';
+      if(toggle) toggle.style.display = 'none';
+      if(btn) { btn.textContent = 'Signups Closed'; btn.disabled = true; btn.style.opacity = '0.4'; }
+    }
     return;
   }
   var d = Math.floor(diff / 86400000);
@@ -1625,6 +1638,11 @@ function submitPrediction(matchId) {
   db.ref('pl2627/predictions/' + currentPlayer + '/m' + matchId).set({ s1: s1, s2: s2, submitted: true });
 }
 
+function setSignupGate(open) {
+  if(currentPlayer !== ADMIN) return;
+  if(!confirm((open ? 'Open' : 'Close') + ' signups for new players?')) return;
+  db.ref('pl2627/config/signupGate').set(open ? 'open' : 'closed');
+}
 function lockMW(mw) {
   if(currentPlayer !== ADMIN) return;
   db.ref('pl2627/manualLock/mw' + mw).set(true);
@@ -2099,6 +2117,21 @@ renderDashboard = function() {
   h += '<div class="bar"><div style="width:' + _rpct + '%;background:' + _rk.color + '"></div></div>';
   if(_nx) h += '<div class="meta" style="margin-top:6px">' + (_nx.min - me.total) + ' points to promotion</div>';
   h += '</div></div>';
+
+  // Admin controls
+  if(isAdmin) {
+    var _mwLocked = state.manualLock && state.manualLock['mw' + currentMW];
+    var _suOpen = isSignupOpen();
+    h += '<div class="card" style="border-color:rgba(230,168,23,0.3)"><h3 style="color:#e6a817">&#128737; Admin controls</h3>';
+    h += '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    if(_mwLocked) h += '<button onclick="unlockMW(' + currentMW + ')" style="flex:1;min-width:150px;background:#1d9e75;color:#fff;border:none;border-radius:8px;padding:11px;font-size:12px;font-weight:700;cursor:pointer">&#128275; Unlock MW' + currentMW + '</button>';
+    else h += '<button onclick="lockMW(' + currentMW + ')" style="flex:1;min-width:150px;background:#e24b4a;color:#fff;border:none;border-radius:8px;padding:11px;font-size:12px;font-weight:700;cursor:pointer">&#128274; Lock MW' + currentMW + ' now</button>';
+    if(_suOpen) h += '<button onclick="setSignupGate(false)" style="flex:1;min-width:150px;background:#e24b4a;color:#fff;border:none;border-radius:8px;padding:11px;font-size:12px;font-weight:700;cursor:pointer">&#128274; Close signups</button>';
+    else h += '<button onclick="setSignupGate(true)" style="flex:1;min-width:150px;background:#1d9e75;color:#fff;border:none;border-radius:8px;padding:11px;font-size:12px;font-weight:700;cursor:pointer">&#128275; Open signups</button>';
+    h += '</div>';
+    h += '<div style="font-size:11px;color:var(--muted);margin-top:8px">Signups: <b style="color:' + (_suOpen ? '#1d9e75' : '#e24b4a') + '">' + (_suOpen ? 'OPEN' : 'CLOSED') + '</b>' + (_mwLocked ? ' &middot; MW' + currentMW + ' predictions LOCKED' : '') + '</div>';
+    h += '</div>';
+  }
 
     // Redeem rewards card — five options, per-tier locking
   var pendMine = hasPendingRedemption(currentPlayer);
