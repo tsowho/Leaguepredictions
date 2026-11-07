@@ -260,6 +260,21 @@ body { font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 .rankstrip .meta { font-size:12px; color:var(--muted); font-weight:600; }
 @media (min-width:900px){ .chat-fab { bottom:24px; right:24px; } .chat-panel { bottom:24px; right:24px; } }
 
+
+/* ===== LIGHT THEME ===== */
+body.theme-light {
+  --bg:#f4f6f9; --card:#ffffff; --card2:#f0f3f6; --fg:#14212c; --muted:#6b7a86;
+  --accent:#1d9e75; --accent2:#17936c; --blue:#2f6fb0; --amber:#b9820a; --red:#d83a3a;
+  --border:#e4e9ee; --input-bg:#eef2f6; --me:rgba(29,158,117,.09); --meb:rgba(29,158,117,.26);
+}
+body.theme-light .nav { background:rgba(255,255,255,.95); }
+body.theme-light .lbt tbody tr.me td { background:rgba(29,158,117,.08); }
+body.theme-light .match-inputs input { background:#eef2f6; }
+.theme-fab { position:fixed; bottom:86px; left:18px; width:48px; height:48px; border-radius:50%; background:var(--card); border:1px solid var(--border); color:var(--fg); font-size:20px; cursor:pointer; z-index:60; box-shadow:0 8px 20px rgba(0,0,0,.3); display:flex; align-items:center; justify-content:center; }
+@media (min-width:900px){ .theme-fab { display:none; } }
+.sb-theme { display:flex; align-items:center; gap:13px; padding:12px 14px; border-radius:12px; font-size:14px; font-weight:600; color:var(--muted); cursor:pointer; margin-top:4px; }
+.sb-theme .tab-icon { font-size:18px; width:22px; text-align:center; }
+
 </style>
 
 </head>
@@ -331,6 +346,8 @@ body { font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
       <div class="tab" data-tab="leaderboard" onclick="switchTab('leaderboard')"><span class="tab-icon">&#127942;</span>Leaderboard</div>
       <div class="tab" data-tab="results" onclick="switchTab('results')"><span class="tab-icon">&#128202;</span>Results</div>
       <div class="tab" data-tab="players" onclick="switchTab('players')"><span class="tab-icon">&#128101;</span>Players</div>
+      <div class="tab" data-tab="rewards" onclick="switchTab('rewards')"><span class="tab-icon">&#127873;</span>Rewards</div>
+      <div class="sb-theme" onclick="toggleTheme()"><span class="tab-icon theme-ico">&#127769;</span><span>Theme</span></div>
     </nav>
     <div class="sb-spacer"></div>
     <div class="sb-user"><div class="av" id="sbAvatar">B</div><div><div class="nm" id="sbName">Player</div><div class="rl" onclick="logout()">Log out</div></div></div>
@@ -346,6 +363,7 @@ body { font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
 
 <!-- Floating Chat -->
 <button class="chat-fab" id="chatFab" onclick="toggleChatPanel()" style="display:none">&#128172;<span class="chat-fab-badge" id="chatBadge" style="display:none">0</span></button>
+<button class="theme-fab" onclick="toggleTheme()"><span class="theme-ico">&#127769;</span></button>
 <div class="chat-panel" id="chatPanel">
 <div class="chat-panel-hdr"><h3>&#128172; Chat</h3><button class="chat-panel-close" onclick="toggleChatPanel()">&times;</button></div>
 <div id="floatingChatMsgs" style="flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:6px;max-height:320px"></div>
@@ -361,6 +379,7 @@ body { font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sa
     <div class="tab" data-tab="leaderboard" onclick="switchTab('leaderboard')"><span class="tab-icon">&#127942;</span>Table</div>
     <div class="tab" data-tab="results" onclick="switchTab('results')"><span class="tab-icon">&#9989;</span>Results</div>
     <div class="tab" data-tab="players" onclick="switchTab('players')"><span class="tab-icon">&#128101;</span>Players</div>
+    <div class="tab" data-tab="rewards" onclick="switchTab('rewards')"><span class="tab-icon">&#127873;</span>Rewards</div>
   </div>
 </div>
 
@@ -1199,10 +1218,68 @@ function render(immediate) {
     case 'leaderboard': h += renderLeaderboard(); break;
     case 'results': h += renderResults(); break;
     case 'players': h += renderPlayers(); break;
+    case 'rewards': h += renderRewards(); break;
   }
   c.innerHTML = h;
 }
 
+function renderRewards() {
+  var h = '';
+  h += '<div class="header"><h2>&#127873; Rewards</h2><span class="user-info" onclick="logout()">Log out</span></div>';
+  var myCoins = getBerryCoins(currentPlayer);
+  var predBonus = getStreakBonus(currentPlayer);
+  var loginB = (dailyClaimData ? dailyClaimData.totalLoginCoins : 0) || 0;
+
+  h += '<div class="wallet-card">';
+  h += '<div class="wallet-header"><div class="wallet-label">&#127827; BerryCoins wallet</div>';
+  if(predBonus > 0 || loginB > 0) h += '<div class="wallet-trend" style="color:#1d9e75">&#8593; +' + (predBonus + loginB) + ' bonus</div>';
+  h += '</div>';
+  h += '<div class="wallet-amount"><span class="icon">&#127827;</span><span class="num">' + myCoins + '</span><span class="label">BerryCoins</span></div>';
+  h += '</div>';
+  syncBerryCoins();
+
+  var pendMine = hasPendingRedemption(currentPlayer);
+  h += '<div style="background:rgba(29,158,117,0.08);border:1px solid rgba(29,158,117,0.2);border-radius:10px;padding:14px;margin-bottom:14px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px"><div style="font-size:13px;font-weight:600">&#127873; Redeem rewards &#128522;</div><span onclick="showHowToEarn()" style="font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid var(--border);color:var(--blue);cursor:pointer">&#8505;&#65039; How to earn</span></div>';
+  h += '<div style="font-size:10px;color:var(--muted);margin-bottom:10px">Your balance: ' + myCoins.toLocaleString() + ' &#127827;</div>';
+  if(pendMine) h += '<div style="font-size:10px;color:#e6a817;text-align:center;margin-bottom:10px">&#9203; You have a pending request awaiting review</div>';
+  ['Airtime','Data'].forEach(function(grp){
+    var icon = grp === 'Airtime' ? '&#128222;' : '&#128246;';
+    h += '<div style="font-size:11px;font-weight:600;color:var(--muted);margin:4px 0 6px">' + icon + ' ' + grp + '</div>';
+    h += '<div style="display:flex;gap:8px;margin-bottom:8px">';
+    REDEEM_OPTIONS.filter(function(o){ return o.group === grp; }).forEach(function(o){
+      var afford = myCoins >= o.cost;
+      var active = afford && !pendMine;
+      var shortLabel = o.label.replace(' airtime','').replace(' data','');
+      h += '<div class="' + (active ? 'reward-ready' : '') + '" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid ' + (afford ? 'rgba(29,158,117,0.3)' : 'rgba(255,255,255,0.08)') + ';border-radius:8px;padding:10px;text-align:center;' + (afford ? '' : 'opacity:0.5') + '">';
+      if(active) h += '<div class="gift-ico" style="font-size:18px;margin-bottom:2px">&#127873;</div>';
+      h += '<div style="font-size:13px;font-weight:600">' + shortLabel + '</div>';
+      h += '<div style="font-size:10px;color:var(--muted);margin:2px 0 8px">' + o.cost.toLocaleString() + ' &#127827;</div>';
+      if(active) h += '<button onclick="redeemReward(\x27' + o.label + '\x27,' + o.cost + ')" style="width:100%;padding:6px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:600;cursor:pointer">Redeem</button>';
+      else h += '<button disabled style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:not-allowed">' + (pendMine ? 'Pending' : '&#128274;') + '</button>';
+      h += '</div>';
+    });
+    h += '</div>';
+  });
+  h += '<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Tap a reward, enter the number to credit &mdash; an email opens to the Bank. Coins deduct after approval.</div>';
+  h += '</div>';
+
+  var myReds = getMyRedemptions(currentPlayer);
+  if(myReds.length > 0) {
+    h += '<div class="card"><h3>&#128220; My redeem history</h3>';
+    myReds.forEach(function(x){
+      var map = { pending:['#e6a817','Pending'], approved:['#378ADD','Pending crediting'], fulfilled:['#1d9e75','You have been credited'], rejected:['#e24b4a','Rejected'] };
+      var m = map[x.status] || map.pending;
+      var when = x.ts ? new Date(x.ts).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : '';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">';
+      h += '<div><div style="font-size:13px;font-weight:500">' + x.reward + '</div><div style="font-size:11px;color:var(--muted)">' + (x.cost||0).toLocaleString() + ' &#127827; &middot; ' + when + '</div></div>';
+      h += '<span style="background:' + m[0] + '22;color:' + m[0] + ';font-size:11px;font-weight:600;padding:3px 10px;border-radius:6px">' + m[1] + '</span>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  return h;
+}
 function renderDashboard() {
   var h = '';
   var isAdmin = currentPlayer === ADMIN;
@@ -2557,6 +2634,20 @@ render = function(immediate) {
     setTimeout(startTicker, 100);
   }
 };
+
+
+// ===== THEME TOGGLE =====
+function updateThemeIcons() {
+  var light = document.body.classList.contains('theme-light');
+  var ic = light ? '\u2600\ufe0f' : '\ud83c\udf19';
+  document.querySelectorAll('.theme-ico').forEach(function(e){ e.textContent = ic; });
+}
+function toggleTheme() {
+  var light = document.body.classList.toggle('theme-light');
+  try { localStorage.setItem('lp_theme', light ? 'light' : 'dark'); } catch(e){}
+  updateThemeIcons();
+}
+(function(){ try { if(localStorage.getItem('lp_theme') === 'light') document.body.classList.add('theme-light'); } catch(e){} updateThemeIcons(); })();
 
 </script>
 </body>
