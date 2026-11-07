@@ -871,7 +871,7 @@ var CL_MATCHES = [
 var MAX_MW = 38;
 
 // ========== STATE ==========
-var state = { players: {}, predictions: {}, actuals: {}, redemptions: {}, cl_predictions: {}, cl_actuals: {}, loginStreaks: {} };
+var state = { players: {}, predictions: {}, actuals: {}, redemptions: {}, cl_predictions: {}, cl_actuals: {}, loginStreaks: {}, manualLock: {} };
 
 // Firebase listeners
 var stateRef = db.ref('pl2627');
@@ -882,6 +882,7 @@ stateRef.child('cl_predictions').on('value', function(snap) { state.cl_predictio
 stateRef.child('cl_actuals').on('value', function(snap) { state.cl_actuals = snap.val() || {}; if(currentPlayer) render(); });;
 stateRef.child('redemptions').on('value', function(snap) { state.redemptions = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('loginStreaks').on('value', function(snap) { state.loginStreaks = snap.val() || {}; if(currentPlayer) render(); });
+stateRef.child('manualLock').on('value', function(snap) { state.manualLock = snap.val() || {}; if(currentPlayer) render(); });
 
 
 // Chat
@@ -1011,8 +1012,18 @@ stateRef.child('players').on('value', function() { setTimeout(updateLoginPlayerC
 setTimeout(updateLoginPlayerCount, 500);
 
 // ========== UTILS ==========
+function lastSundayUTC(y, month) { // month 0-indexed; Date at 01:00 UTC of that month's last Sunday
+  var d = new Date(Date.UTC(y, month + 1, 0, 1, 0, 0));
+  d.setUTCDate(d.getUTCDate() - d.getUTCDay());
+  return d;
+}
+function ukOffset(dateStr) { // '+01:00' during British Summer Time, else '+00:00'
+  var y = parseInt(dateStr.slice(0,4), 10);
+  var noon = new Date(dateStr + 'T12:00:00Z');
+  return (noon >= lastSundayUTC(y, 2) && noon < lastSundayUTC(y, 9)) ? '+01:00' : '+00:00';
+}
 function getMatchTime(m) {
-  return new Date(m.date + 'T' + m.time + ':00+01:00'); // UK BST
+  return new Date(m.date + 'T' + m.time + ':00' + ukOffset(m.date)); // UK local time, GMT/BST aware
 }
 
 function fmtDate(d) {
@@ -1023,6 +1034,7 @@ function fmtDate(d) {
 }
 
 function isLocked(m) {
+  if(state.manualLock && state.manualLock['mw' + m.mw]) return true;
   if(state.actuals && state.actuals['m' + m.id] && state.actuals['m' + m.id].s1 !== undefined) return true;
   if(state.cl_actuals && state.cl_actuals['m' + m.id] && state.cl_actuals['m' + m.id].s1 !== undefined) return true;
   return Date.now() >= (getMatchTime(m).getTime() - 600000);
@@ -1148,6 +1160,19 @@ function renderDashboard() {
     h += '<div class="deadline-banner">';
     h += '<div class="dl-label">MATCHWEEK ' + currentMW + ' DEADLINE</div>';
     h += '<div class="dl-time">' + d + 'd ' + hrs + 'h ' + mins + 'm</div>';
+    h += '</div>';
+  }
+
+  // Admin: manual lock override for the current matchweek
+  if(isAdmin) {
+    var mwLocked = state.manualLock && state.manualLock['mw' + currentMW];
+    h += '<div style="text-align:center;margin-bottom:14px">';
+    if(mwLocked) {
+      h += '<button onclick="unlockMW(' + currentMW + ')" style="background:#1d9e75;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer">&#128275; Unlock MW' + currentMW + ' predictions</button>';
+      h += '<div style="color:var(--amber);font-size:11px;margin-top:6px">Predictions are CLOSED for MW' + currentMW + '</div>';
+    } else {
+      h += '<button onclick="lockMW(' + currentMW + ')" style="background:#e24b4a;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer">&#128274; Lock MW' + currentMW + ' predictions now</button>';
+    }
     h += '</div>';
   }
 
@@ -1504,6 +1529,16 @@ function savePrediction(el) {
   db.ref('pl2627/predictions/' + currentPlayer + '/m' + matchId + '/' + side).set(parseInt(val));
 }
 
+function lockMW(mw) {
+  if(currentPlayer !== ADMIN) return;
+  db.ref('pl2627/manualLock/mw' + mw).set(true);
+}
+function unlockMW(mw) {
+  if(currentPlayer !== ADMIN) return;
+  if(confirm('Re-open predictions for MW' + mw + '? Only do this if you locked it by mistake.')) {
+    db.ref('pl2627/manualLock/mw' + mw).remove();
+  }
+}
 function saveActual(matchId) {
   var s1 = document.getElementById('actual_s1_' + matchId).value;
   var s2 = document.getElementById('actual_s2_' + matchId).value;
