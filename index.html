@@ -1526,7 +1526,23 @@ function savePrediction(el) {
   var side = el.getAttribute('data-side');
   var val = el.value;
   if(val === '' || isNaN(val) || parseInt(val) < 0) return;
+  var ex = (state.predictions[currentPlayer] || {})['m' + matchId];
+  if(ex && ex.submitted) return; // already locked in
+  var mobj = PL_MATCHES.filter(function(x){ return x.id == matchId; })[0];
+  if(mobj && isLocked(mobj)) return; // kickoff / manual lock
   db.ref('pl2627/predictions/' + currentPlayer + '/m' + matchId + '/' + side).set(parseInt(val));
+}
+function submitPrediction(matchId) {
+  var mobj = PL_MATCHES.filter(function(x){ return x.id == matchId; })[0];
+  if(mobj && isLocked(mobj)) { render(); return; }
+  var inputs = document.querySelectorAll('[data-match="' + matchId + '"]');
+  var s1 = null, s2 = null;
+  inputs.forEach(function(x){ var sd = x.getAttribute('data-side'); if(sd === 's1') s1 = x.value; if(sd === 's2') s2 = x.value; });
+  if(s1 === '' || s2 === '' || s1 == null || s2 == null || isNaN(s1) || isNaN(s2)) { alert('Enter both scores before locking in.'); return; }
+  s1 = parseInt(s1); s2 = parseInt(s2);
+  if(s1 < 0 || s2 < 0) { alert('Scores must be 0 or more.'); return; }
+  if(!confirm('Lock in ' + s1 + ' - ' + s2 + '?\n\nThis is final and cannot be changed once locked.')) return;
+  db.ref('pl2627/predictions/' + currentPlayer + '/m' + matchId).set({ s1: s1, s2: s2, submitted: true });
 }
 
 function lockMW(mw) {
@@ -2264,8 +2280,10 @@ renderPredict = function() {
   var myPreds = state.predictions[currentPlayer] || {};
 
   mwMatches.forEach(function(m) {
-    var locked = isLocked(m);
+    var mlock = isLocked(m);
     var pred = myPreds['m' + m.id];
+    var finalised = !!(pred && pred.submitted);
+    var locked = mlock || finalised;
     var actual = state.actuals['m' + m.id];
 
     h += '<div class="match-card">';
@@ -2297,6 +2315,8 @@ renderPredict = function() {
       h += '<span class="dash">-</span>';
       h += '<input type="number" min="0" max="20" value="' + s2 + '" data-match="' + m.id + '" data-side="s2" onchange="savePrediction(this)">';
       h += '</div>';
+      h += '<button onclick="submitPrediction(' + m.id + ')" style="margin-top:8px;width:100%;background:#1d9e75;color:#fff;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">&#128274; Lock in pick (final)</button>';
+      h += '<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:5px">Edit freely until you lock in. Once locked in, your pick is final.</div>';
 
       // Pick distribution for open matches
       var dist = getPickDistribution(m.id);
