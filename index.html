@@ -396,7 +396,7 @@ var db = firebase.database();
 
 // ========== CONFIG ==========
 var ADMIN = 'Baba';
-var FOUNDER_CUTOFF = new Date('2027-01-01T00:00:00Z').getTime(); // joined before Jan reopening = Berry First Airborne I
+var FOUNDER_CUTOFF = new Date('2026-08-21T20:00:00+01:00').getTime(); // joined before PL kickoff = Berry First Airborne I (originals only)
 function isFounder(player) {
   var p = state.players[player];
   return p && p.joinedAt && p.joinedAt < FOUNDER_CUTOFF;
@@ -427,6 +427,32 @@ function hideAirborneTip() {
 window.showAirborneInfo = function(e) {
   if(e) e.stopPropagation();
   alert('\uD83E\uDE82 Berry First Airborne I\n\nFounding member — joined before kickoff.\nA permanent honour for the originals.');
+};
+function isReinforcement(player) {
+  var p = state.players[player];
+  return p && p.joinedAt && p.joinedAt >= FOUNDER_CUTOFF;
+}
+function reinforcementBadge(player) {
+  if(!isReinforcement(player)) return '';
+  return ' <span onclick="showReinforceInfo(event)" onmouseenter="showReinforceTip(this)" onmouseleave="hideAirborneTip()" style="color:#e6a817;cursor:pointer" title="Berry Reinforcements">&#10022;</span>';
+}
+function showReinforceTip(el) {
+  var t = document.getElementById('airborneTip');
+  if(!t) {
+    t = document.createElement('div');
+    t.id = 'airborneTip';
+    t.style.cssText = 'position:fixed;background:var(--card2,#1c2128);border:1px solid var(--border);border-radius:8px;padding:9px 11px;font-size:11px;line-height:1.5;z-index:9999;pointer-events:none;max-width:210px;box-shadow:0 6px 20px rgba(0,0,0,0.45)';
+    document.body.appendChild(t);
+  }
+  t.innerHTML = '<div style="font-weight:700;color:#e6a817;margin-bottom:2px">&#127894;&#65039; Berry Reinforcements</div><div style="color:var(--muted)">Joined in the mid-season window. Welcome to the family.</div>';
+  var r = el.getBoundingClientRect();
+  t.style.display = 'block';
+  t.style.left = Math.min(r.left, window.innerWidth - 220) + 'px';
+  t.style.top = (r.bottom + 6) + 'px';
+}
+window.showReinforceInfo = function(e) {
+  if(e) e.stopPropagation();
+  alert('🎖️ Berry Reinforcements\n\nJoined in the mid-season window.\nWelcome to the Berry family.');
 };
 var RANKS = [
   { name:'Recruit',    min:0,   color:'#9aa9b4' },
@@ -1553,7 +1579,7 @@ function renderPlayers() {
     var isNew = isAdmin && t && t >= newThreshold;
     h += '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">';
     h += '<span style="width:38px;font-size:12px;color:var(--muted);font-weight:600">#' + (i+1) + '</span>';
-    h += '<span style="flex:1;font-size:14px;' + (isMe ? 'color:var(--accent);font-weight:600' : '') + '">' + p + (isMe ? ' (you)' : '') + '</span>';
+    h += '<span style="flex:1;font-size:14px;' + (isMe ? 'color:var(--accent);font-weight:600' : '') + '">' + p + founderStar(p) + reinforcementBadge(p) + (isMe ? ' (you)' : '') + '</span>';
     if(isNew) h += '<span style="font-size:10px;font-weight:700;color:#05100b;background:var(--accent);padding:2px 8px;border-radius:20px">NEW</span>';
     h += '<span style="font-size:12px;color:var(--muted);min-width:52px;text-align:right">' + joinDateStr(t) + '</span>';
     if(isAdmin && p !== ADMIN) {
@@ -1622,7 +1648,7 @@ function renderCLLeaderboard() {
     var isMe = p.name === currentPlayer;
     h += '<div class="lb-card" style="' + (isMe ? 'border-color:var(--accent)' : '') + '">';
     h += '<span class="lb-pos ' + posClass + '">' + (i + 1) + '</span>';
-    h += '<span class="lb-name">' + p.name + (isMe ? ' &#128994;' : '') + founderStar(p.name) + '</span>';
+    h += '<span class="lb-name">' + p.name + (isMe ? ' &#128994;' : '') + founderStar(p.name) + reinforcementBadge(p.name) + '</span>';
     h += '<span class="lb-stat">' + p.exact + ' exact</span>';
     h += '<span class="lb-stat">' + p.correct + 'W ' + p.wrong + 'L</span>';
     h += '<span class="lb-dual"><div class="lb-pts-main">' + p.total + ' pts</div></span>';
@@ -2484,7 +2510,7 @@ renderLeaderboard = function() {
     h += '<tr' + (isMe ? ' class="me"' : '') + '>';
     h += '<td><div class="pcell"><span class="posn' + (i === 0 ? ' g' : '') + '">' + (i + 1) + '</span>';
     h += '<span class="crest' + (isMe ? ' me' : '') + '">' + (p.name[0] || '?').toUpperCase() + '</span>';
-    h += '<div><div class="pname">' + p.name + founderStar(p.name) + streakBadge(p.name) + '</div><div class="prank" style="color:' + rk.color + '">' + rankBadge(p.name) + rk.name + '</div></div></div></td>';
+    h += '<div><div class="pname">' + p.name + founderStar(p.name) + reinforcementBadge(p.name) + streakBadge(p.name) + '</div><div class="prank" style="color:' + rk.color + '">' + rankBadge(p.name) + rk.name + '</div></div></div></td>';
     h += '<td class="c hide-sm">' + p.predicted + '</td>';
     h += '<td class="c hide-sm">' + p.exact + '</td>';
     h += '<td class="c hide-sm">' + acc + '%</td>';
