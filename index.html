@@ -964,7 +964,7 @@ stateRef.child('cl_actuals').on('value', function(snap) { state.cl_actuals = sna
 stateRef.child('redemptions').on('value', function(snap) { state.redemptions = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('loginStreaks').on('value', function(snap) { state.loginStreaks = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('manualLock').on('value', function(snap) { state.manualLock = snap.val() || {}; if(currentPlayer) render(); });
-stateRef.child('config').on('value', function(snap) { state.config = snap.val() || {}; if(currentPlayer) render(); });
+stateRef.child('config').on('value', function(snap) { state.config = snap.val() || {}; if(typeof updateLoginPlayerCount === 'function') updateLoginPlayerCount(); if(typeof updateLoginCountdown === 'function') updateLoginCountdown(); if(currentPlayer) render(); });
 
 
 // Chat
@@ -1090,7 +1090,11 @@ function updateLoginPlayerCount() {
   var count = Object.keys(state.players || {}).length;
   if(count > 0) el.innerHTML = '&#128101; ' + count + ' player' + (count !== 1 ? 's' : '') + ' already joined';
   else el.innerHTML = 'Be the first to join!';
-  el.innerHTML += '<br><span class="signup-closed-notice">Sorry, signups have closed. Season has begun and predictions are live.</span>';
+  if(isSignupOpen()) {
+    el.innerHTML += '<br><span style="display:inline-block;color:#2fd39b;font-size:12px;margin-top:6px;font-weight:600;text-shadow:0 0 8px rgba(47,211,155,0.4)">&#127881; Signups are OPEN for a limited time. Tap Sign up below to join the Berry family!</span>';
+  } else {
+    el.innerHTML += '<br><span class="signup-closed-notice">Sorry, signups have closed. Season has begun and predictions are live.</span>';
+  }
 }
 
 // Run countdown timer
