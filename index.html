@@ -1520,17 +1520,43 @@ function renderResults() {
   return h;
 }
 
+function joinDateStr(ts){
+  if(!ts) return '';
+  var d=new Date(ts), mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d.getDate()+' '+mo[d.getMonth()];
+}
 function renderPlayers() {
   var h = '';
   h += '<div class="header"><h2>&#128101; Players</h2><span class="user-info" onclick="logout()">Log out</span></div>';
 
-  var players = Object.keys(state.players).sort();
-  h += '<div class="card"><div style="font-size:13px;color:var(--muted);margin-bottom:10px">' + players.length + ' players</div>';
-  players.forEach(function(p) {
+  var isAdmin = currentPlayer === ADMIN;
+  var players = Object.keys(state.players);
+  players.sort(function(a,b){
+    var ta = (state.players[a] && state.players[a].joinedAt) || 0;
+    var tb = (state.players[b] && state.players[b].joinedAt) || 0;
+    return ta - tb;
+  });
+
+  var newThreshold = (state.config && state.config.gateOpenedAt) ? state.config.gateOpenedAt : (Date.now() - 7*86400000);
+  var newCount = 0;
+  players.forEach(function(p){ var t=(state.players[p]||{}).joinedAt; if(t && t>=newThreshold) newCount++; });
+
+  if(isAdmin && newCount > 0) {
+    h += '<div class="card" style="border:1px solid var(--accent);background:rgba(47,211,155,0.08)"><div style="font-size:14px;font-weight:700;color:var(--accent)">&#127881; ' + newCount + ' new signup' + (newCount!==1?'s':'') + ' this window</div><div style="font-size:12px;color:var(--muted);margin-top:3px">Newest are at the bottom of the list, badged NEW.</div></div>';
+  }
+
+  h += '<div class="card"><div style="font-size:13px;color:var(--muted);margin-bottom:10px">' + players.length + ' players &#183; in signup order</div>';
+  players.forEach(function(p, i) {
+    var pl = state.players[p] || {};
+    var t = pl.joinedAt;
     var isMe = p === currentPlayer;
-    h += '<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">';
+    var isNew = isAdmin && t && t >= newThreshold;
+    h += '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">';
+    h += '<span style="width:38px;font-size:12px;color:var(--muted);font-weight:600">#' + (i+1) + '</span>';
     h += '<span style="flex:1;font-size:14px;' + (isMe ? 'color:var(--accent);font-weight:600' : '') + '">' + p + (isMe ? ' (you)' : '') + '</span>';
-    if(currentPlayer === ADMIN && p !== ADMIN) {
+    if(isNew) h += '<span style="font-size:10px;font-weight:700;color:#05100b;background:var(--accent);padding:2px 8px;border-radius:20px">NEW</span>';
+    h += '<span style="font-size:12px;color:var(--muted);min-width:52px;text-align:right">' + joinDateStr(t) + '</span>';
+    if(isAdmin && p !== ADMIN) {
       h += '<span style="font-size:11px;color:var(--red);cursor:pointer" onclick="removePlayer(\x27' + p.replace(/'/g, "\\'") + '\x27)">Remove</span>';
     }
     h += '</div>';
@@ -1721,6 +1747,7 @@ function submitPrediction(matchId) {
 function setSignupGate(open) {
   if(currentPlayer !== ADMIN) return;
   if(!confirm((open ? 'Open' : 'Close') + ' signups for new players?')) return;
+  if(open) db.ref('pl2627/config/gateOpenedAt').set(Date.now());
   db.ref('pl2627/config/signupGate').set(open ? 'open' : 'closed');
 }
 function lockMW(mw) {
