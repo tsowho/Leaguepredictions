@@ -1551,6 +1551,44 @@ function joinDateStr(ts){
   var d=new Date(ts), mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return d.getDate()+' '+mo[d.getMonth()];
 }
+function isActivePlayer(name) {
+  function hasReal(obj){ var m = obj && obj[name]; if(!m) return false; return Object.keys(m).some(function(k){ var e=m[k]; return e && (e.s1!==undefined || e.s2!==undefined); }); }
+  return hasReal(state.predictions) || hasReal(state.cl_predictions);
+}
+var inactiveSel = {};
+function toggleInactiveSel(name, cb) {
+  if(cb.checked) inactiveSel[name] = true; else delete inactiveSel[name];
+  var btn = document.getElementById('bulkRemoveBtn');
+  if(btn) btn.textContent = 'Remove selected (' + Object.keys(inactiveSel).length + ')';
+}
+function selectInactive(all) {
+  inactiveSel = {};
+  if(all) {
+    var nt = (state.config && state.config.gateOpenedAt) ? state.config.gateOpenedAt : (Date.now() - 7*86400000);
+    Object.keys(state.players).forEach(function(pn){
+      if(pn === ADMIN) return;
+      if(isActivePlayer(pn)) return;
+      var t = (state.players[pn]||{}).joinedAt;
+      if(t && t >= nt) return;
+      inactiveSel[pn] = true;
+    });
+  }
+  render();
+}
+function bulkRemoveInactive() {
+  if(currentPlayer !== ADMIN) return;
+  var names = Object.keys(inactiveSel);
+  if(names.length === 0) { alert('No players selected. Tick the players you want to remove first.'); return; }
+  if(!confirm('Permanently remove ' + names.length + ' inactive player' + (names.length!==1?'s':'') + '?\n\nThis deletes their account and picks. It cannot be undone.\n\n' + names.slice(0,15).join(', ') + (names.length>15 ? ', and ' + (names.length-15) + ' more' : ''))) return;
+  names.forEach(function(name){
+    if(name === ADMIN) return;
+    db.ref('pl2627/players/' + name).remove();
+    db.ref('pl2627/predictions/' + name).remove();
+    db.ref('pl2627/cl_predictions/' + name).remove();
+  });
+  inactiveSel = {};
+  alert('Removed ' + names.length + ' inactive player' + (names.length!==1?'s':'') + '.');
+}
 function renderPlayers() {
   var h = '';
   h += '<div class="header"><h2>&#128101; Players</h2><span class="user-info" onclick="logout()">Log out</span></div>';
@@ -1571,6 +1609,33 @@ function renderPlayers() {
     h += '<div class="card" style="border:1px solid var(--accent);background:rgba(47,211,155,0.08)"><div style="font-size:14px;font-weight:700;color:var(--accent)">&#127881; ' + newCount + ' new signup' + (newCount!==1?'s':'') + ' this window</div><div style="font-size:12px;color:var(--muted);margin-top:3px">Newest are at the bottom of the list, badged NEW.</div></div>';
   }
 
+  if(isAdmin) {
+    var inactiveList = players.filter(function(pn){ return pn !== ADMIN && !isActivePlayer(pn); });
+    h += '<div class="card" style="border:1px solid rgba(226,75,74,0.4)">';
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-size:15px;font-weight:700;color:#e24b4a">&#128465;&#65039; Inactive players</div><span style="font-size:12px;color:var(--muted)">' + inactiveList.length + ' with 0 predictions</span></div>';
+    h += '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Never made a pick, so 0 points. Tick who to remove, then confirm. Joiners from this window are flagged NEW and left out of Select all.</div>';
+    if(inactiveList.length === 0) {
+      h += '<div style="font-size:13px;color:var(--muted)">Everyone has made at least one prediction.</div>';
+    } else {
+      h += '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">';
+      h += '<button onclick="selectInactive(true)" style="background:var(--card2,#1c2128);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer">Select all dormant</button>';
+      h += '<button onclick="selectInactive(false)" style="background:var(--card2,#1c2128);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer">Clear</button>';
+      h += '<button onclick="bulkRemoveInactive()" id="bulkRemoveBtn" style="margin-left:auto;background:#e24b4a;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer">Remove selected (' + Object.keys(inactiveSel).length + ')</button>';
+      h += '</div>';
+      inactiveList.forEach(function(pn){
+        var t = (state.players[pn]||{}).joinedAt;
+        var isNewWin = t && t >= newThreshold;
+        var checked = inactiveSel[pn] ? ' checked' : '';
+        h += '<label style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer' + (isNewWin ? ';background:rgba(47,211,155,0.05)' : '') + '">';
+        h += '<input type="checkbox"' + checked + ' onchange="toggleInactiveSel(\x27' + pn.replace(/'/g, "\\'") + '\x27, this)" style="width:18px;height:18px;accent-color:#e24b4a;flex-shrink:0">';
+        h += '<span style="flex:1;font-size:14px">' + pn + '</span>';
+        if(isNewWin) h += '<span style="font-size:10px;font-weight:700;color:#05100b;background:var(--accent);padding:2px 8px;border-radius:20px">NEW</span>';
+        h += '<span style="font-size:12px;color:var(--muted);min-width:78px;text-align:right">' + joinDateStr(t) + '</span>';
+        h += '</label>';
+      });
+    }
+    h += '</div>';
+  }
   h += '<div class="card"><div style="font-size:13px;color:var(--muted);margin-bottom:10px">' + players.length + ' players &#183; in signup order</div>';
   players.forEach(function(p, i) {
     var pl = state.players[p] || {};
