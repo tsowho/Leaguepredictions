@@ -1313,7 +1313,7 @@ function brkStakeBox(m){
   var mk='m'+m.id;
   var mine = state.stakes && state.stakes[currentPlayer] && state.stakes[currentPlayer][mk];
   if(mine){
-    return '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(47,211,155,.08);border:1px solid rgba(47,211,155,.3);font-size:12px;color:#9fe9cf">&#127919; Staked <b style="color:#fff">'+mine.amt+'</b> chips on this pick. Settles when the result is in.</div>';
+    return '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(47,211,155,.08);border:1px solid rgba(47,211,155,.3);font-size:12px;color:#9fe9cf">&#127919; Staked <b style="color:#fff">'+mine.amt+'</b> chips. Your pick stays editable until kickoff, and the stake settles on your final score.</div>';
   }
   var bal = getChipBal(currentPlayer);
   var maxA = Math.min(BARRACKS.stake.max, Math.floor(bal*BARRACKS.stake.capPct));
@@ -1328,9 +1328,9 @@ function brkStakeBox(m){
   if(maxA < BARRACKS.stake.min){
     s2+='<div style="font-size:12px;color:#e2706e;text-align:center">Not enough chips to stake (need '+BARRACKS.stake.min+').</div>';
   } else {
-    s2+='<button onclick="placeStake('+m.id+')" style="width:100%;background:linear-gradient(135deg,#f2b01e,#c98f10);color:#2a1d04;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:800;cursor:pointer">&#128274; Lock pick + stake '+sel+'</button>';
+    s2+='<button onclick="placeStake('+m.id+')" style="width:100%;background:linear-gradient(135deg,#f2b01e,#c98f10);color:#2a1d04;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:800;cursor:pointer">&#127919; Stake '+sel+' chips</button>';
   }
-  s2+='<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Staking locks your pick. Chips only, never your BerryCoins.</div></div>';
+  s2+='<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Chips only, never your BerryCoins. You can still edit your pick until kickoff.</div></div>';
   return s2;
 }
 function placeStake(matchId){
@@ -1354,7 +1354,6 @@ function placeStake(matchId){
   c.tourStakes = (c.tourStakes||0) + 1;
   db.ref('pl2627/chips/'+currentPlayer).set(c);
   db.ref('pl2627/stakes/'+currentPlayer+'/'+mk).set({ amt:amt, mw:(m?m.mw:currentMW), tour:currentTour().n, ts:Date.now(), settled:false });
-  db.ref('pl2627/predictions/'+currentPlayer+'/'+mk).update({ submitted:true });
 }
 function settleStakes(matchId, as1, as2){
   if(currentPlayer !== ADMIN) return;
