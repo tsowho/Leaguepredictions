@@ -993,6 +993,7 @@ stateRef.child('loginStreaks').on('value', function(snap) { state.loginStreaks =
 stateRef.child('manualLock').on('value', function(snap) { state.manualLock = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('config').on('value', function(snap) { state.config = snap.val() || {}; if(typeof updateLoginPlayerCount === 'function') updateLoginPlayerCount(); if(typeof updateLoginCountdown === 'function') updateLoginCountdown(); if(currentPlayer) render(); });
 stateRef.child('chips').on('value', function(snap) { state.chips = snap.val() || {}; if(typeof chipsTick === 'function') chipsTick(); if(currentPlayer) render(); });
+stateRef.child('stakes').on('value', function(snap) { state.stakes = snap.val() || {}; if(currentPlayer) render(); });
 
 
 // Chat
@@ -1258,6 +1259,7 @@ function render(immediate) {
 
 /* ===== Berry Barracks (staking hub) - Stage 1: config + gated tab ===== */
 var BARRACKS = {
+  live:false,
   tours: [
     { n:'I',   name:'Operation First Strike',    from:11, to:14 },
     { n:'II',  name:'Operation Ironclad',                  from:15, to:18 },
@@ -1303,6 +1305,87 @@ function chipsTick(){
     else if(predCount > me.predCredited){ upd.bal += (predCount - me.predCredited)*BARRACKS.economy.predict; upd.predCredited = predCount; changed=true; }
   }
   if(changed){ window._chipWriting=true; db.ref('pl2627/chips/'+currentPlayer).set(upd, function(){ window._chipWriting=false; }); }
+}
+var _stakeSel = {};
+function _alignTour(c){ var tk=currentTour().n; if(c.tourKey!==tk){ c.tourKey=tk; c.tourNet=0; c.tourStakes=0; } return c; }
+function selStake(matchId, amt){ _stakeSel[matchId]=amt; render(); }
+function brkStakeBox(m){
+  var mk='m'+m.id;
+  var mine = state.stakes && state.stakes[currentPlayer] && state.stakes[currentPlayer][mk];
+  if(mine){
+    return '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(47,211,155,.08);border:1px solid rgba(47,211,155,.3);font-size:12px;color:#9fe9cf">&#127919; Staked <b style="color:#fff">'+mine.amt+'</b> chips on this pick. Settles when the result is in.</div>';
+  }
+  var bal = getChipBal(currentPlayer);
+  var maxA = Math.min(BARRACKS.stake.max, Math.floor(bal*BARRACKS.stake.capPct));
+  var sel = Math.min((_stakeSel[m.id]||BARRACKS.stake.min), Math.max(BARRACKS.stake.min,maxA));
+  var presets=[10,25,50,100];
+  var s2='<div style="margin-top:8px;padding:12px;border-radius:12px;background:var(--card2,#0c141b);border:1px solid rgba(242,176,30,.35)">';
+  s2+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;font-weight:700;color:#ffd98a">&#127919; STAKE CHIPS</span><span style="font-size:11px;color:var(--muted)">Bal '+bal+' &#183; max '+maxA+'</span></div>';
+  s2+='<div style="display:flex;gap:6px;margin-bottom:8px">';
+  presets.forEach(function(v){ var on=(sel===v); var dis=v>maxA; s2+='<span onclick="'+(dis?'':'selStake('+m.id+','+v+')')+'" style="flex:1;text-align:center;padding:7px 0;border-radius:8px;font-size:13px;font-weight:700;cursor:'+(dis?'not-allowed':'pointer')+';background:'+(on?'linear-gradient(135deg,#2fd39b,#1d9e75)':'transparent')+';color:'+(on?'#06231a':(dis?'#44504a':'#cdd'))+';border:1px solid '+(on?'transparent':'var(--border)')+'">'+v+'</span>'; });
+  s2+='</div>';
+  s2+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:8px"><span>Exact &times;4 = <b style="color:#2fd39b">'+(sel*4)+'</b></span><span>Res+GD &times;2.5 = <b style="color:#2fd39b">'+Math.floor(sel*2.5)+'</b></span><span>Result &times;1.5 = <b style="color:#2fd39b">'+Math.floor(sel*1.5)+'</b></span></div>';
+  if(maxA < BARRACKS.stake.min){
+    s2+='<div style="font-size:12px;color:#e2706e;text-align:center">Not enough chips to stake (need '+BARRACKS.stake.min+').</div>';
+  } else {
+    s2+='<button onclick="placeStake('+m.id+')" style="width:100%;background:linear-gradient(135deg,#f2b01e,#c98f10);color:#2a1d04;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:800;cursor:pointer">&#128274; Lock pick + stake '+sel+'</button>';
+  }
+  s2+='<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Staking locks your pick. Chips only, never your BerryCoins.</div></div>';
+  return s2;
+}
+function placeStake(matchId){
+  if(!currentPlayer) return;
+  var me = state.chips && state.chips[currentPlayer];
+  if(!me){ alert('Chips still loading, try again in a moment.'); return; }
+  var mk='m'+matchId;
+  var pred = state.predictions[currentPlayer] && state.predictions[currentPlayer][mk];
+  if(!pred || pred.s1===undefined || pred.s2===undefined){ alert('Enter your score first, then stake.'); return; }
+  if(state.stakes && state.stakes[currentPlayer] && state.stakes[currentPlayer][mk]){ alert('You already staked on this match.'); return; }
+  var m = PL_MATCHES.filter(function(x){ return x.id===matchId; })[0];
+  if(m && isLocked(m)){ alert('This match is locked.'); return; }
+  var bal = me.bal||0;
+  var maxA = Math.min(BARRACKS.stake.max, Math.floor(bal*BARRACKS.stake.capPct));
+  var amt = Math.min(_stakeSel[matchId]||BARRACKS.stake.min, maxA);
+  if(amt < BARRACKS.stake.min){ alert('Minimum stake is '+BARRACKS.stake.min+' chips.'); return; }
+  if(amt > bal){ alert('Not enough chips.'); return; }
+  var c = Object.assign({}, me); _alignTour(c);
+  c.bal = bal - amt;
+  c.tourNet = (c.tourNet||0) - amt;
+  c.tourStakes = (c.tourStakes||0) + 1;
+  db.ref('pl2627/chips/'+currentPlayer).set(c);
+  db.ref('pl2627/stakes/'+currentPlayer+'/'+mk).set({ amt:amt, mw:(m?m.mw:currentMW), tour:currentTour().n, ts:Date.now(), settled:false });
+  db.ref('pl2627/predictions/'+currentPlayer+'/'+mk).update({ submitted:true });
+}
+function settleStakes(matchId, as1, as2){
+  if(currentPlayer !== ADMIN) return;
+  if(!state.stakes) return;
+  var mk='m'+matchId;
+  Object.keys(state.stakes).forEach(function(pl){
+    var st = state.stakes[pl] && state.stakes[pl][mk];
+    if(!st || st.settled) return;
+    var pred = state.predictions[pl] && state.predictions[pl][mk];
+    var mult=0;
+    if(pred && pred.s1!==undefined && pred.s2!==undefined){
+      var ps1=pred.s1, ps2=pred.s2;
+      var pr=ps1>ps2?1:(ps1<ps2?-1:0);
+      var ar=as1>as2?1:(as1<as2?-1:0);
+      if(ps1===as1 && ps2===as2) mult=BARRACKS.mult.exact;
+      else if(pr===ar && (ps1-ps2)===(as1-as2)) mult=BARRACKS.mult.resultGD;
+      else if(pr===ar) mult=BARRACKS.mult.result;
+    }
+    var c = Object.assign({ bal:0 }, state.chips[pl]||{});
+    _alignTour(c);
+    var won = mult>0;
+    var pre = c.streak||0;
+    var eff = won ? (pre>=3 ? mult+BARRACKS.mult.streakBoost : mult) : 0;
+    var payout = won ? Math.floor(st.amt*eff) : 0;
+    c.bal = (c.bal||0) + payout;
+    c.tourNet = (c.tourNet||0) + payout;
+    if(won){ c.streak = pre+1; if(c.streak % BARRACKS.economy.streakAt === 0){ c.bal += BARRACKS.economy.streakBonus; c.tourNet += BARRACKS.economy.streakBonus; } }
+    else { c.streak = 0; }
+    db.ref('pl2627/chips/'+pl).set(c);
+    db.ref('pl2627/stakes/'+pl+'/'+mk).update({ settled:true, mult:mult, payout:payout, won:won });
+  });
 }
 function brkComingSoon() {
   var hz = 'height:8px;background:repeating-linear-gradient(45deg,#f2b01e 0 22px,#141007 22px 44px)';
@@ -1967,7 +2050,7 @@ function saveActual(matchId) {
   var s2 = document.getElementById('actual_s2_' + matchId).value;
   if(s1 === '' || s2 === '' || isNaN(s1) || isNaN(s2)) { alert('Enter both scores'); return; }
   if(!confirm('Save result?')) return;
-  db.ref('pl2627/actuals/m' + matchId).set({ s1: parseInt(s1), s2: parseInt(s2) });
+  db.ref('pl2627/actuals/m' + matchId).set({ s1: parseInt(s1), s2: parseInt(s2) }, function(){ if(typeof settleStakes==='function') settleStakes(matchId, parseInt(s1), parseInt(s2)); });
 }
 
 function changeMW(dir) {
@@ -2759,6 +2842,7 @@ renderPredict = function() {
       h += '</div>';
       h += '<button onclick="submitPrediction(' + m.id + ')" style="margin-top:8px;width:100%;background:#1d9e75;color:#fff;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">&#128274; Lock in pick (final)</button>';
       h += '<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:5px">Edit freely until you lock in. Once locked in, your pick is final.</div>';
+      if(BARRACKS.live || currentPlayer === ADMIN) h += brkStakeBox(m);
 
       // Pick distribution for open matches
       var dist = getPickDistribution(m.id);
