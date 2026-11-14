@@ -992,6 +992,7 @@ stateRef.child('redemptions').on('value', function(snap) { state.redemptions = s
 stateRef.child('loginStreaks').on('value', function(snap) { state.loginStreaks = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('manualLock').on('value', function(snap) { state.manualLock = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('config').on('value', function(snap) { state.config = snap.val() || {}; if(typeof updateLoginPlayerCount === 'function') updateLoginPlayerCount(); if(typeof updateLoginCountdown === 'function') updateLoginCountdown(); if(currentPlayer) render(); });
+stateRef.child('chips').on('value', function(snap) { state.chips = snap.val() || {}; if(typeof chipsTick === 'function') chipsTick(); if(currentPlayer) render(); });
 
 
 // Chat
@@ -1278,6 +1279,31 @@ function currentTour() {
   for(var i=0;i<BARRACKS.tours.length;i++){ if(mw <= BARRACKS.tours[i].to) return BARRACKS.tours[i]; }
   return BARRACKS.tours[BARRACKS.tours.length-1];
 }
+function chipWeekId(){ var d=new Date(); var onejan=new Date(d.getFullYear(),0,1); var wk=Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7); return d.getFullYear()+'-W'+wk; }
+function getChipBal(pl){ return (state.chips && state.chips[pl] && typeof state.chips[pl].bal==='number') ? state.chips[pl].bal : 0; }
+function chipsTick(){
+  if(window._chipWriting) return;
+  if(!currentPlayer) return;
+  if(!state.chips || state.predictions===undefined) return;
+  var me = state.chips[currentPlayer];
+  var todayStr = new Date().toISOString().slice(0,10);
+  var wk = chipWeekId();
+  var predCount = 0;
+  function cnt(obj){ var m=obj && obj[currentPlayer]; if(!m) return; Object.keys(m).forEach(function(k){ var e=m[k]; if(e && (e.s1!==undefined||e.s2!==undefined)) predCount++; }); }
+  cnt(state.predictions); cnt(state.cl_predictions);
+  var upd, changed=false;
+  if(!me){
+    upd={ bal:BARRACKS.economy.starter, started:true, lastDrop:wk, lastLogin:todayStr, predCredited:predCount };
+    changed=true;
+  } else {
+    upd={ bal:(me.bal||0), started:true, lastDrop:me.lastDrop, lastLogin:me.lastLogin, predCredited:(me.predCredited===undefined?predCount:me.predCredited) };
+    if(me.lastDrop !== wk){ upd.bal += BARRACKS.economy.weeklyDrop; upd.lastDrop = wk; changed=true; }
+    if(me.lastLogin !== todayStr){ upd.bal += BARRACKS.economy.login; upd.lastLogin = todayStr; changed=true; }
+    if(me.predCredited===undefined){ changed=true; }
+    else if(predCount > me.predCredited){ upd.bal += (predCount - me.predCredited)*BARRACKS.economy.predict; upd.predCredited = predCount; changed=true; }
+  }
+  if(changed){ window._chipWriting=true; db.ref('pl2627/chips/'+currentPlayer).set(upd, function(){ window._chipWriting=false; }); }
+}
 function brkComingSoon() {
   var hz = 'height:8px;background:repeating-linear-gradient(45deg,#f2b01e 0 22px,#141007 22px 44px)';
   return '<div style="position:relative;overflow:hidden;border-radius:18px;background:#0a130d;border:1px solid #1b2e27">'
@@ -1316,6 +1342,10 @@ function brkTourBanner() {
 function brkAdminPreview() {
   var h = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:#f2b01e;font-weight:700"><span>&#128295; ADMIN PREVIEW</span><span style="color:var(--muted);font-weight:500">Being built in stages. The public sees the coming-soon screen.</span></div>';
   h += brkTourBanner();
+  h += '<div class="card" style="display:flex;align-items:center;gap:14px">'
+    + '<div style="width:52px;height:52px;border-radius:50%;background:repeating-conic-gradient(#fff 0 14deg,#1d9e75 14deg 45deg);position:relative;flex-shrink:0"><div style="position:absolute;inset:8px;border-radius:50%;background:linear-gradient(135deg,#2fd39b,#1d9e75);border:2px dashed rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;font-weight:900;color:#06231a">B</div></div>'
+    + '<div><div style="font-size:26px;font-weight:900;line-height:1">' + getChipBal(currentPlayer) + '</div><div style="font-size:11px;color:var(--muted);letter-spacing:.06em">YOUR BERRY CHIPS</div></div>'
+    + '<div style="margin-left:auto;font-size:12px;color:var(--muted);text-align:right">Starter 500 plus weekly drop,<br>login and pick chips as players log in</div></div>';
   var ct = currentTour();
   h += '<div class="card"><div style="font-weight:700;margin-bottom:10px">&#128220; Season tours</div>';
   BARRACKS.tours.forEach(function(t){
