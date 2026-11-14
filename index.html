@@ -1309,28 +1309,36 @@ function chipsTick(){
 var _stakeSel = {};
 function _alignTour(c){ var tk=currentTour().n; if(c.tourKey!==tk){ c.tourKey=tk; c.tourNet=0; c.tourStakes=0; } return c; }
 function selStake(matchId, amt){ _stakeSel[matchId]=amt; render(); }
-function brkStakeBox(m){
+function brkStakeStatus(m){
   var mk='m'+m.id;
   var mine = state.stakes && state.stakes[currentPlayer] && state.stakes[currentPlayer][mk];
-  if(mine){
-    return '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(47,211,155,.08);border:1px solid rgba(47,211,155,.3);font-size:12px;color:#9fe9cf">&#127919; Staked <b style="color:#fff">'+mine.amt+'</b> chips. Your pick stays editable until kickoff, and the stake settles on your final score.</div>';
-  }
+  if(!mine) return '';
+  var sc = (mine.s1!==undefined) ? (mine.s1+' - '+mine.s2) : 'your final pick';
+  var tail='';
+  if(mine.settled){ tail = mine.won ? ' <span style="color:#2fd39b;font-weight:700">Won '+mine.payout+'</span>' : ' <span style="color:#e2706e;font-weight:700">Lost '+mine.amt+'</span>'; }
+  return '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(47,211,155,.08);border:1px solid rgba(47,211,155,.3);font-size:12px;color:#9fe9cf">&#127919; Staked <b style="color:#fff">'+mine.amt+'</b> chips on <b style="color:#fff">'+sc+'</b>.'+tail+'</div>';
+}
+function brkStakeBox(m){
+  var mk='m'+m.id;
+  if(state.stakes && state.stakes[currentPlayer] && state.stakes[currentPlayer][mk]) return brkStakeStatus(m);
+  var cp = state.predictions[currentPlayer] && state.predictions[currentPlayer][mk];
+  var hasScore = cp && cp.s1!==undefined && cp.s2!==undefined;
   var bal = getChipBal(currentPlayer);
   var maxA = Math.min(BARRACKS.stake.max, Math.floor(bal*BARRACKS.stake.capPct));
   var sel = Math.min((_stakeSel[m.id]||BARRACKS.stake.min), Math.max(BARRACKS.stake.min,maxA));
   var presets=[10,25,50,100];
   var s2='<div style="margin-top:8px;padding:12px;border-radius:12px;background:var(--card2,#0c141b);border:1px solid rgba(242,176,30,.35)">';
   s2+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;font-weight:700;color:#ffd98a">&#127919; STAKE CHIPS</span><span style="font-size:11px;color:var(--muted)">Bal '+bal+' &#183; max '+maxA+'</span></div>';
+  if(hasScore) s2+='<div style="font-size:12px;color:#cdd;margin-bottom:8px">Backing <b style="color:#fff">'+cp.s1+' - '+cp.s2+'</b> with chips. Your pick for points stays separate and editable.</div>';
+  else s2+='<div style="font-size:12px;color:#e2b35a;margin-bottom:8px">Enter the score you want to back above, then stake.</div>';
   s2+='<div style="display:flex;gap:6px;margin-bottom:8px">';
   presets.forEach(function(v){ var on=(sel===v); var dis=v>maxA; s2+='<span onclick="'+(dis?'':'selStake('+m.id+','+v+')')+'" style="flex:1;text-align:center;padding:7px 0;border-radius:8px;font-size:13px;font-weight:700;cursor:'+(dis?'not-allowed':'pointer')+';background:'+(on?'linear-gradient(135deg,#2fd39b,#1d9e75)':'transparent')+';color:'+(on?'#06231a':(dis?'#44504a':'#cdd'))+';border:1px solid '+(on?'transparent':'var(--border)')+'">'+v+'</span>'; });
   s2+='</div>';
   s2+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:8px"><span>Exact &times;4 = <b style="color:#2fd39b">'+(sel*4)+'</b></span><span>Res+GD &times;2.5 = <b style="color:#2fd39b">'+Math.floor(sel*2.5)+'</b></span><span>Result &times;1.5 = <b style="color:#2fd39b">'+Math.floor(sel*1.5)+'</b></span></div>';
-  if(maxA < BARRACKS.stake.min){
-    s2+='<div style="font-size:12px;color:#e2706e;text-align:center">Not enough chips to stake (need '+BARRACKS.stake.min+').</div>';
-  } else {
-    s2+='<button onclick="placeStake('+m.id+')" style="width:100%;background:linear-gradient(135deg,#f2b01e,#c98f10);color:#2a1d04;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:800;cursor:pointer">&#127919; Stake '+sel+' chips</button>';
-  }
-  s2+='<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Chips only, never your BerryCoins. You can still edit your pick until kickoff.</div></div>';
+  if(!hasScore){ s2+='<div style="font-size:12px;color:var(--muted);text-align:center">Set a score to enable staking.</div>'; }
+  else if(maxA < BARRACKS.stake.min){ s2+='<div style="font-size:12px;color:#e2706e;text-align:center">Not enough chips to stake (need '+BARRACKS.stake.min+').</div>'; }
+  else { s2+='<button onclick="placeStake('+m.id+')" style="width:100%;background:linear-gradient(135deg,#f2b01e,#c98f10);color:#2a1d04;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:800;cursor:pointer">&#127919; Stake '+sel+' on '+cp.s1+'-'+cp.s2+'</button>'; }
+  s2+='<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Chips only, never your BerryCoins. The stake settles on the score shown above.</div></div>';
   return s2;
 }
 function placeStake(matchId){
@@ -1353,7 +1361,7 @@ function placeStake(matchId){
   c.tourNet = (c.tourNet||0) - amt;
   c.tourStakes = (c.tourStakes||0) + 1;
   db.ref('pl2627/chips/'+currentPlayer).set(c);
-  db.ref('pl2627/stakes/'+currentPlayer+'/'+mk).set({ amt:amt, mw:(m?m.mw:currentMW), tour:currentTour().n, ts:Date.now(), settled:false });
+  db.ref('pl2627/stakes/'+currentPlayer+'/'+mk).set({ amt:amt, s1:pred.s1, s2:pred.s2, mw:(m?m.mw:currentMW), tour:currentTour().n, ts:Date.now(), settled:false });
 }
 function settleStakes(matchId, as1, as2){
   if(currentPlayer !== ADMIN) return;
@@ -1362,10 +1370,10 @@ function settleStakes(matchId, as1, as2){
   Object.keys(state.stakes).forEach(function(pl){
     var st = state.stakes[pl] && state.stakes[pl][mk];
     if(!st || st.settled) return;
-    var pred = state.predictions[pl] && state.predictions[pl][mk];
+    var ps1 = (st.s1!==undefined) ? st.s1 : (state.predictions[pl] && state.predictions[pl][mk] ? state.predictions[pl][mk].s1 : undefined);
+    var ps2 = (st.s2!==undefined) ? st.s2 : (state.predictions[pl] && state.predictions[pl][mk] ? state.predictions[pl][mk].s2 : undefined);
     var mult=0;
-    if(pred && pred.s1!==undefined && pred.s2!==undefined){
-      var ps1=pred.s1, ps2=pred.s2;
+    if(ps1!==undefined && ps2!==undefined){
       var pr=ps1>ps2?1:(ps1<ps2?-1:0);
       var ar=as1>as2?1:(as1<as2?-1:0);
       if(ps1===as1 && ps2===as2) mult=BARRACKS.mult.exact;
@@ -2868,6 +2876,7 @@ renderPredict = function() {
       h += '<div class="match-prediction" style="color:var(--red)">No prediction</div>';
     }
 
+    if(locked && (BARRACKS.live || currentPlayer === ADMIN)) h += brkStakeStatus(m);
     h += '</div>';
   });
 
