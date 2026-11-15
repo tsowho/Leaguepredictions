@@ -994,6 +994,7 @@ stateRef.child('manualLock').on('value', function(snap) { state.manualLock = sna
 stateRef.child('config').on('value', function(snap) { state.config = snap.val() || {}; if(typeof updateLoginPlayerCount === 'function') updateLoginPlayerCount(); if(typeof updateLoginCountdown === 'function') updateLoginCountdown(); if(currentPlayer) render(); });
 stateRef.child('chips').on('value', function(snap) { state.chips = snap.val() || {}; if(typeof chipsTick === 'function') chipsTick(); if(currentPlayer) render(); });
 stateRef.child('stakes').on('value', function(snap) { state.stakes = snap.val() || {}; if(currentPlayer) render(); });
+stateRef.child('duels').on('value', function(snap) { state.duels = snap.val() || {}; if(currentPlayer) render(); });
 
 
 // Chat
@@ -1394,6 +1395,140 @@ function settleStakes(matchId, as1, as2){
     db.ref('pl2627/stakes/'+pl+'/'+mk).update({ settled:true, mult:mult, payout:payout, won:won });
   });
 }
+// ===== BERRY BARRACKS: DUELS =====
+var _duelSel = {};
+function duelMWStarted(mw){ return getMWMatches(mw).some(function(m){ return isLocked(m); }); }
+function duelMWResulted(mw){ var mm=getMWMatches(mw); return mm.length>0 && mm.every(function(m){ var a=state.actuals && state.actuals['m'+m.id]; return a && a.s1!==undefined; }); }
+function duelPts(pl, mw){ var t=0; getMWMatches(mw).forEach(function(m){ var a=state.actuals && state.actuals['m'+m.id]; if(!a||a.s1===undefined) return; var pr=(state.predictions[pl]||{})['m'+m.id]; if(pr&&pr.s1!==undefined){ var r=calcPoints(pr,a); if(r) t+=r.pts; } }); return t; }
+function _chipAdjust(pl,dBal,dNet){ var c=Object.assign({bal:0},state.chips[pl]||{}); _alignTour(c); c.bal=(c.bal||0)+dBal; c.tourNet=(c.tourNet||0)+dNet; db.ref('pl2627/chips/'+pl).set(c); }
+function selDuelOpp(p){ _duelSel.opp=p; render(); }
+function selDuelAnte(v){ _duelSel.ante=v; render(); }
+function issueDuel(){
+  if(!currentPlayer) return;
+  var me=state.chips && state.chips[currentPlayer];
+  if(!me){ alert('Chips still loading, try again in a moment.'); return; }
+  var to=_duelSel.opp; var ante=_duelSel.ante||BARRACKS.duel.min;
+  if(!to){ alert('Pick an opponent first.'); return; }
+  if(to===currentPlayer){ alert('You cannot duel yourself.'); return; }
+  if(ante<BARRACKS.duel.min||ante>BARRACKS.duel.max){ alert('Ante must be '+BARRACKS.duel.min+' to '+BARRACKS.duel.max+' chips.'); return; }
+  if(ante>(me.bal||0)){ alert('Not enough chips for that ante.'); return; }
+  var mw=getCurrentMW();
+  if(duelMWStarted(mw)){ alert('MW'+mw+' has already kicked off, wait for the next matchweek to open.'); return; }
+  var dup=false;
+  if(state.duels) Object.keys(state.duels).forEach(function(id){ var d=state.duels[id]; if(d&&(d.status==='pending'||d.status==='active')&&d.mw===mw&&((d.from===currentPlayer&&d.to===to)||(d.from===to&&d.to===currentPlayer))) dup=true; });
+  if(dup){ alert('You already have a duel with '+to+' for MW'+mw+'.'); return; }
+  _chipAdjust(currentPlayer,-ante,-ante);
+  var id=db.ref('pl2627/duels').push().key;
+  db.ref('pl2627/duels/'+id).set({ from:currentPlayer, to:to, ante:ante, mw:mw, tour:currentTour().n, status:'pending', ts:Date.now() });
+  _duelSel={};
+  render();
+}
+function acceptDuel(id){
+  var d=state.duels && state.duels[id]; if(!d||d.status!=='pending') return;
+  if(d.to!==currentPlayer){ alert('This challenge is not for you.'); return; }
+  if(duelMWStarted(d.mw)){ alert('MW'+d.mw+' has already kicked off, too late to accept.'); return; }
+  var me=state.chips && state.chips[currentPlayer];
+  if(!me||(me.bal||0)<d.ante){ alert('Not enough chips to match the '+d.ante+' ante.'); return; }
+  _chipAdjust(currentPlayer,-d.ante,-d.ante);
+  db.ref('pl2627/duels/'+id).update({ status:'active', acceptedTs:Date.now() });
+  render();
+}
+function declineDuel(id){ var d=state.duels && state.duels[id]; if(!d||d.status!=='pending') return; if(d.to!==currentPlayer && currentPlayer!==ADMIN) return; _chipAdjust(d.from,d.ante,d.ante); db.ref('pl2627/duels/'+id).update({status:'declined',settledTs:Date.now()}); render(); }
+function cancelDuel(id){ var d=state.duels && state.duels[id]; if(!d||d.status!=='pending') return; if(d.from!==currentPlayer && currentPlayer!==ADMIN) return; _chipAdjust(d.from,d.ante,d.ante); db.ref('pl2627/duels/'+id).update({status:'cancelled',settledTs:Date.now()}); render(); }
+function settleDuels(){
+  if(currentPlayer !== ADMIN) return;
+  if(!state.duels) return;
+  var deltas={}; function add(pl,b,n){ if(!deltas[pl]) deltas[pl]={bal:0,net:0}; deltas[pl].bal+=b; deltas[pl].net+=n; }
+  var updates={};
+  Object.keys(state.duels).forEach(function(id){
+    var d=state.duels[id]; if(!d||d.status!=='active') return;
+    if(!duelMWResulted(d.mw)) return;
+    var p1=duelPts(d.from,d.mw), p2=duelPts(d.to,d.mw); var pot=d.ante*2; var winner;
+    if(p1>p2){ winner=d.from; add(d.from,pot,pot); }
+    else if(p2>p1){ winner=d.to; add(d.to,pot,pot); }
+    else { winner='draw'; add(d.from,d.ante,d.ante); add(d.to,d.ante,d.ante); }
+    updates[id]={ status:'settled', winner:winner, fromPts:p1, toPts:p2, settledTs:Date.now() };
+  });
+  Object.keys(deltas).forEach(function(pl){ var c=Object.assign({bal:0},state.chips[pl]||{}); _alignTour(c); c.bal=(c.bal||0)+deltas[pl].bal; c.tourNet=(c.tourNet||0)+deltas[pl].net; db.ref('pl2627/chips/'+pl).set(c); });
+  Object.keys(updates).forEach(function(id){ db.ref('pl2627/duels/'+id).update(updates[id]); });
+}
+function brkDuelPanel(){
+  if(!(BARRACKS.live || currentPlayer===ADMIN)) return '';
+  var mw=getCurrentMW(); var me=currentPlayer; var duels=state.duels||{};
+  var ids=Object.keys(duels); var incoming=[],outgoing=[],active=[],recent=[];
+  ids.forEach(function(id){ var d=duels[id]; if(!d) return; d._id=id;
+    if(d.status==='pending'&&d.to===me) incoming.push(d);
+    else if(d.status==='pending'&&d.from===me) outgoing.push(d);
+    else if(d.status==='active'&&(d.from===me||d.to===me)) active.push(d);
+    else if(d.status==='settled'&&(d.from===me||d.to===me)) recent.push(d);
+  });
+  recent.sort(function(a,b){ return (b.settledTs||0)-(a.settledTs||0); });
+  var h='<div class="card">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-weight:800;font-size:16px">&#9876;&#65039; Duels</div><span style="font-size:11px;color:var(--muted)">Head to head over MW'+mw+'</span></div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5">Challenge a soldier, both ante the same chips, most prediction points over the matchweek takes the pot. A draw refunds both.</div>';
+  if(incoming.length){
+    h+='<div style="font-size:12px;font-weight:700;color:#ffd98a;margin-bottom:6px">Incoming challenges</div>';
+    incoming.forEach(function(d){
+      var canAccept=(getChipBal(me)>=d.ante)&&!duelMWStarted(d.mw);
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;background:rgba(242,176,30,.08);border:1px solid rgba(242,176,30,.3);margin-bottom:8px">';
+      h+='<div style="flex:1;font-size:13px"><b style="color:#fff">'+d.from+'</b> challenges you<br><span style="color:var(--muted);font-size:11px">Ante '+d.ante+' chips &#183; pot '+(d.ante*2)+' &#183; MW'+d.mw+'</span></div>';
+      h+='<span onclick="'+(canAccept?'acceptDuel(\''+d._id+'\')':'')+'" style="padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:'+(canAccept?'pointer':'not-allowed')+';background:'+(canAccept?'linear-gradient(135deg,#2fd39b,#1d9e75)':'#223')+';color:'+(canAccept?'#06231a':'#667')+'">Accept</span>';
+      h+='<span onclick="declineDuel(\''+d._id+'\')" style="padding:7px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:transparent;border:1px solid var(--border);color:#cdd">Decline</span>';
+      h+='</div>';
+    });
+  }
+  if(active.length){
+    h+='<div style="font-size:12px;font-weight:700;color:#9fe9cf;margin:10px 0 6px">Active duels</div>';
+    active.forEach(function(d){
+      var opp=(d.from===me)?d.to:d.from; var myPts=duelPts(me,d.mw), opPts=duelPts(opp,d.mw);
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;background:rgba(47,211,155,.06);border:1px solid rgba(47,211,155,.25);margin-bottom:8px">';
+      h+='<div style="flex:1;font-size:13px">vs <b style="color:#fff">'+opp+'</b> <span style="color:var(--muted);font-size:11px">&#183; pot '+(d.ante*2)+' &#183; MW'+d.mw+'</span></div>';
+      h+='<div style="font-size:15px;font-weight:800"><span style="color:'+(myPts>=opPts?'#2fd39b':'#cdd')+'">'+myPts+'</span> <span style="color:var(--muted)">-</span> <span style="color:'+(opPts>myPts?'#e2706e':'#cdd')+'">'+opPts+'</span></div>';
+      h+='</div>';
+    });
+  }
+  if(outgoing.length){
+    h+='<div style="font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 6px">Awaiting response</div>';
+    outgoing.forEach(function(d){
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;background:var(--card2,#0c141b);border:1px solid var(--border);margin-bottom:8px">';
+      h+='<div style="flex:1;font-size:13px">You challenged <b style="color:#fff">'+d.to+'</b> <span style="color:var(--muted);font-size:11px">&#183; ante '+d.ante+' &#183; MW'+d.mw+'</span></div>';
+      h+='<span onclick="cancelDuel(\''+d._id+'\')" style="padding:6px 11px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--border);color:#cdd">Cancel</span></div>';
+    });
+  }
+  var others=Object.keys(state.players||{}).filter(function(p){ return p!==me; }).sort();
+  if(others.length){
+    var sel=_duelSel.opp||''; var ante=_duelSel.ante||BARRACKS.duel.min; var bal=getChipBal(me);
+    h+='<div style="margin-top:12px;padding:12px;border-radius:12px;background:var(--card2,#0c141b);border:1px solid rgba(242,176,30,.3)">';
+    h+='<div style="font-size:12px;font-weight:700;color:#ffd98a;margin-bottom:8px">&#9876;&#65039; New challenge <span style="color:var(--muted);font-weight:500">&#183; bal '+bal+'</span></div>';
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;max-height:132px;overflow:auto">';
+    others.forEach(function(p){ var on=(sel===p); h+='<span onclick="selDuelOpp(\''+p.replace(/'/g,"\\'")+'\')" style="padding:5px 10px;border-radius:7px;font-size:12px;cursor:pointer;border:1px solid '+(on?'#2fd39b':'var(--border)')+';background:'+(on?'rgba(47,211,155,.15)':'transparent')+';color:'+(on?'#2fd39b':'#cdd')+'">'+p+'</span>'; });
+    h+='</div>';
+    h+='<div style="font-size:11px;color:var(--muted);margin-bottom:6px">Ante, both put in the same</div>';
+    h+='<div style="display:flex;gap:6px;margin-bottom:10px">';
+    [50,100,200,500].forEach(function(v){ var on=(ante===v); var dis=v>bal; h+='<span onclick="'+(dis?'':'selDuelAnte('+v+')')+'" style="flex:1;text-align:center;padding:7px 0;border-radius:8px;font-size:13px;font-weight:700;cursor:'+(dis?'not-allowed':'pointer')+';background:'+(on?'linear-gradient(135deg,#f2b01e,#c98f10)':'transparent')+';color:'+(on?'#2a1d04':(dis?'#44504a':'#cdd'))+';border:1px solid '+(on?'transparent':'var(--border)')+'">'+v+'</span>'; });
+    h+='</div>';
+    var canIssue=sel&&ante<=bal&&ante>=BARRACKS.duel.min&&!duelMWStarted(mw);
+    var label = !sel ? 'Pick an opponent' : (duelMWStarted(mw) ? 'MW'+mw+' already started' : ('Challenge '+sel+' for '+ante));
+    h+='<button onclick="issueDuel()" style="width:100%;background:'+(canIssue?'linear-gradient(135deg,#2fd39b,#1d9e75)':'#223')+';color:'+(canIssue?'#06231a':'#889')+';border:none;border-radius:9px;padding:11px;font-size:13px;font-weight:800;cursor:'+(canIssue?'pointer':'not-allowed')+'">&#9876;&#65039; '+label+'</button>';
+    h+='<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">Your ante is held until the duel settles. Chips only, never your BerryCoins.</div>';
+    h+='</div>';
+  }
+  if(recent.length){
+    h+='<div style="font-size:12px;font-weight:700;color:var(--muted);margin:12px 0 6px">Recent results</div>';
+    recent.slice(0,5).forEach(function(d){
+      var opp=(d.from===me)?d.to:d.from; var iWon=(d.winner===me); var draw=(d.winner==='draw');
+      var myPts=(d.from===me)?d.fromPts:d.toPts; var opPts=(d.from===me)?d.toPts:d.fromPts;
+      var label=draw?'<span style="color:#e2b35a">Draw, ante back</span>':(iWon?'<span style="color:#2fd39b;font-weight:700">Won +'+(d.ante*2)+'</span>':'<span style="color:#e2706e;font-weight:700">Lost '+d.ante+'</span>');
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px"><span style="flex:1">vs <b style="color:#fff">'+opp+'</b> MW'+d.mw+' ('+myPts+'-'+opPts+')</span>'+label+'</div>';
+    });
+  }
+  if(currentPlayer===ADMIN){
+    var anyRes=ids.some(function(id){ var d=duels[id]; return d&&d.status==='active'&&duelMWResulted(d.mw); });
+    if(anyRes) h+='<div style="margin-top:10px"><button onclick="settleDuels()" style="width:100%;background:#1d9e75;color:#fff;border:none;border-radius:9px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">&#9881;&#65039; Settle finished duels now</button></div>';
+  }
+  h+='</div>';
+  return h;
+}
 function brkComingSoon() {
   var hz = 'height:8px;background:repeating-linear-gradient(45deg,#f2b01e 0 22px,#141007 22px 44px)';
   return '<div style="position:relative;overflow:hidden;border-radius:18px;background:#0a130d;border:1px solid #1b2e27">'
@@ -1436,6 +1571,7 @@ function brkAdminPreview() {
     + '<div style="width:52px;height:52px;border-radius:50%;background:repeating-conic-gradient(#fff 0 14deg,#1d9e75 14deg 45deg);position:relative;flex-shrink:0"><div style="position:absolute;inset:8px;border-radius:50%;background:linear-gradient(135deg,#2fd39b,#1d9e75);border:2px dashed rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;font-weight:900;color:#06231a">B</div></div>'
     + '<div><div style="font-size:26px;font-weight:900;line-height:1">' + getChipBal(currentPlayer) + '</div><div style="font-size:11px;color:var(--muted);letter-spacing:.06em">YOUR BERRY CHIPS</div></div>'
     + '<div style="margin-left:auto;font-size:12px;color:var(--muted);text-align:right">Starter 500 plus weekly drop,<br>login and pick chips as players log in</div></div>';
+  h += brkDuelPanel();
   var ct = currentTour();
   h += '<div class="card"><div style="font-weight:700;margin-bottom:10px">&#128220; Season tours</div>';
   BARRACKS.tours.forEach(function(t){
@@ -2057,7 +2193,7 @@ function saveActual(matchId) {
   var s2 = document.getElementById('actual_s2_' + matchId).value;
   if(s1 === '' || s2 === '' || isNaN(s1) || isNaN(s2)) { alert('Enter both scores'); return; }
   if(!confirm('Save result?')) return;
-  db.ref('pl2627/actuals/m' + matchId).set({ s1: parseInt(s1), s2: parseInt(s2) }, function(){ if(typeof settleStakes==='function') settleStakes(matchId, parseInt(s1), parseInt(s2)); });
+  db.ref('pl2627/actuals/m' + matchId).set({ s1: parseInt(s1), s2: parseInt(s2) }, function(){ if(typeof settleStakes==='function') settleStakes(matchId, parseInt(s1), parseInt(s2)); if(typeof settleDuels==='function') settleDuels(); });
 }
 
 function changeMW(dir) {
