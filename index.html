@@ -995,6 +995,8 @@ stateRef.child('config').on('value', function(snap) { state.config = snap.val() 
 stateRef.child('chips').on('value', function(snap) { state.chips = snap.val() || {}; if(typeof chipsTick === 'function') chipsTick(); if(currentPlayer) render(); });
 stateRef.child('stakes').on('value', function(snap) { state.stakes = snap.val() || {}; if(currentPlayer) render(); });
 stateRef.child('duels').on('value', function(snap) { state.duels = snap.val() || {}; if(currentPlayer) render(); });
+stateRef.child('coinAwards').on('value', function(snap) { state.coinAwards = snap.val() || {}; if(currentPlayer) render(); });
+stateRef.child('tourPayouts').on('value', function(snap) { state.tourPayouts = snap.val() || {}; if(currentPlayer) render(); });
 
 
 // Chat
@@ -1594,8 +1596,114 @@ function brkAccess(){
   if(ct){ var list=Array.isArray(ct)?ct:String(ct).split(','); for(var i=0;i<list.length;i++){ if(String(list[i]).trim()===currentPlayer) return true; } }
   return false;
 }
+// ===== BARRACKS STAGE 5: TOUR TABLE + PLAYER HUB + PAYOUT =====
+function getCoinAwards(player){ return (state.coinAwards && state.coinAwards[player] && typeof state.coinAwards[player].total==='number') ? state.coinAwards[player].total : 0; }
+function tourTable(){
+  var ct=currentTour(); var rows=[];
+  Object.keys(state.chips||{}).forEach(function(pl){
+    if(!state.players || !state.players[pl]) return;
+    var c=state.chips[pl]; if(!c || c.tourKey!==ct.n) return;
+    rows.push({ name:pl, net:c.tourNet||0, stakes:c.tourStakes||0, bal:c.bal||0 });
+  });
+  rows.sort(function(a,b){ return (b.net-a.net) || (b.bal-a.bal) || a.name.localeCompare(b.name); });
+  return rows;
+}
+function tourQualified(rows){ return rows.filter(function(r){ return r.net>0 && r.stakes>=BARRACKS.qualify.minStakes; }); }
+function brkWalletCard(){
+  var me=(state.chips && state.chips[currentPlayer])||{};
+  var streak=me.streak||0; var rows=tourTable(); var rank=0;
+  rows.forEach(function(r,i){ if(r.name===currentPlayer) rank=i+1; });
+  var h='<div class="card" style="display:flex;align-items:center;gap:16px">';
+  h+='<div style="width:60px;height:60px;border-radius:50%;background:repeating-conic-gradient(#fff 0 14deg,#1d9e75 14deg 45deg);position:relative;flex-shrink:0"><div style="position:absolute;inset:9px;border-radius:50%;background:linear-gradient(135deg,#2fd39b,#1d9e75);border:3px dashed rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;font-weight:900;color:#06231a;font-size:20px">B</div></div>';
+  h+='<div style="flex:1"><div style="font-size:30px;font-weight:900;line-height:1">'+getChipBal(currentPlayer)+'</div><div style="font-size:11px;color:var(--muted);letter-spacing:.06em">YOUR BERRY CHIPS</div>';
+  h+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+  if(streak>0) h+='<span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:#0a1512;border:1px solid rgba(242,140,30,.5);color:#ffb765">&#128293; Hot streak '+streak+'</span>';
+  h+='<span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:#0a1512;border:1px solid '+(rank?'rgba(47,211,155,.4)':'var(--border)')+';color:'+(rank?'#2fd39b':'var(--muted)')+'">'+(rank?('Tour rank #'+rank):'Not ranked yet')+'</span>';
+  h+='</div></div></div>';
+  return h;
+}
+function brkStakeReminder(){
+  var ct=currentTour(); var c=state.chips && state.chips[currentPlayer];
+  var staked=(c && c.tourKey===ct.n)?(c.tourStakes||0):0;
+  var need=BARRACKS.qualify.minStakes;
+  var h='<div class="card" style="display:flex;align-items:center;gap:12px">';
+  h+='<div style="font-size:26px">&#127919;</div>';
+  h+='<div style="flex:1;font-size:13px;color:#cdd">You have staked <b style="color:#fff">'+staked+'</b> pick'+(staked===1?'':'s')+' this Tour. '+(staked>=need?'<span style="color:#2fd39b;font-weight:700">Prize eligible</span>':('<span style="color:var(--muted)">'+(need-staked)+' more to qualify for prizes</span>'))+'<br><span style="color:var(--muted);font-size:12px">Back your match picks with chips on the Predict tab.</span></div>';
+  h+='</div>';
+  return h;
+}
+function brkTourTableCard(){
+  var ct=currentTour(); var rows=tourTable(); var q=tourQualified(rows);
+  var prizeOf={}; q.slice(0,3).forEach(function(r,i){ prizeOf[r.name]=BARRACKS.prizes[i]; });
+  var h='<div class="card">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><div style="font-weight:800;font-size:16px">&#127942; '+ct.name+'</div><span style="font-size:11px;color:var(--muted)">chips table</span></div>';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Net chips won this Tour. Top 3 qualified win '+BARRACKS.prizes[0]+' / '+BARRACKS.prizes[1]+' / '+BARRACKS.prizes[2]+' BerryCoins after MW'+ct.to+'. Qualify with net positive and '+BARRACKS.qualify.minStakes+' staked picks.</div>';
+  if(!rows.length){ h+='<div style="font-size:13px;color:var(--muted);text-align:center;padding:12px 0">No chips in play yet this Tour. Be the first to stake.</div></div>'; return h; }
+  rows.forEach(function(r,i){
+    var me=(r.name===currentPlayer); var pr=prizeOf[r.name];
+    var medal=(i===0?'#ffd36a':(i===1?'#cdd':(i===2?'#e0a872':'var(--muted)')));
+    h+='<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;margin-bottom:6px;'+(me?'background:rgba(47,211,155,.08);border:1px solid rgba(47,211,155,.5)':'background:var(--card2,#0c141b);border:1px solid var(--border)')+'">';
+    h+='<span style="width:22px;font-weight:900;font-size:16px;color:'+medal+'">'+(i+1)+'</span>';
+    h+='<span style="flex:1;font-size:14px;font-weight:'+(me?'700':'500')+'">'+r.name+(me?' <span style="color:var(--muted);font-weight:500;font-size:11px">you</span>':'')+'</span>';
+    if(pr) h+='<span style="font-size:12px;font-weight:800;color:#ffd36a;margin-right:10px">'+pr+' &#127827;</span>';
+    h+='<span style="font-size:16px;font-weight:900;color:'+(r.net>0?'#2fd39b':(r.net<0?'#e2706e':'var(--muted)'))+'">'+(r.net>0?'+':'')+r.net+'</span>';
+    h+='</div>';
+  });
+  h+='</div>';
+  return h;
+}
+function brkEconomyCard(){
+  var e=BARRACKS.economy;
+  return '<div class="card"><div style="font-weight:700;margin-bottom:8px">&#9881;&#65039; How chips work</div><div style="font-size:13px;color:var(--muted);line-height:1.8">You get <b style="color:#cdd">'+e.starter+'</b> to start, plus <b style="color:#cdd">'+e.weeklyDrop+'</b> each week, <b style="color:#cdd">+'+e.login+'</b> a day for logging in and <b style="color:#cdd">+'+e.predict+'</b> per match you predict.<br>Stake '+BARRACKS.stake.min+' to '+BARRACKS.stake.max+' chips on a pick, up to 25% of your balance. Win by result or exact score.<br>Duel anyone '+BARRACKS.duel.min+' to '+BARRACKS.duel.max+' chips, head to head over a matchweek.<br>Chips are for play only, never bought. Top the Tour table to win real BerryCoins.</div></div>';
+}
+function brkAdminControls(){
+  var ct=currentTour(); var h='';
+  h+='<div class="card" style="border-color:rgba(242,176,30,.4)">';
+  h+='<div style="font-weight:800;margin-bottom:10px;color:#f2b01e">&#128295; Admin controls</div>';
+  var resulted=duelMWResulted(ct.to); var paid=state.tourPayouts && state.tourPayouts[ct.n];
+  var rows=tourTable(); var q=tourQualified(rows);
+  if(paid){
+    h+='<div style="font-size:13px;color:#2fd39b;margin-bottom:4px">&#9989; '+ct.name+' paid out: '+((paid.winners||[]).map(function(w){ return w.name+' +'+w.prize; }).join(', ')||'no winners')+'</div>';
+  } else {
+    h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">'+(resulted?('MW'+ct.to+' complete. '+q.length+' player'+(q.length===1?'':'s')+' qualified.'):('Opens after MW'+ct.to+' is fully resulted.'))+'</div>';
+    var can=resulted && q.length>0;
+    h+='<button onclick="'+(can?'payoutTour()':'')+'" style="width:100%;background:'+(can?'linear-gradient(135deg,#f2b01e,#c98f10)':'#223')+';color:'+(can?'#2a1d04':'#889')+';border:none;border-radius:9px;padding:11px;font-size:13px;font-weight:800;cursor:'+(can?'pointer':'not-allowed')+'">&#127942; Close Tour and pay out '+BARRACKS.prizes[0]+' / '+BARRACKS.prizes[1]+' / '+BARRACKS.prizes[2]+'</button>';
+  }
+  h+='</div>';
+  return h;
+}
+function payoutTour(){
+  if(currentPlayer!==ADMIN) return;
+  var ct=currentTour();
+  if(!duelMWResulted(ct.to)){ alert('Tour '+ct.n+' is not finished, MW'+ct.to+' still has games to result.'); return; }
+  if(state.tourPayouts && state.tourPayouts[ct.n]){ alert('Tour '+ct.n+' has already been paid out.'); return; }
+  var q=tourQualified(tourTable());
+  if(!q.length){ alert('Nobody qualified for Tour '+ct.n+' (need net positive and '+BARRACKS.qualify.minStakes+' staked picks).'); return; }
+  var top=q.slice(0,3); var prizes=BARRACKS.prizes;
+  var summary=top.map(function(r,i){ return (i+1)+'. '+r.name+'  +'+prizes[i]+' coins  (net '+r.net+')'; }).join('\n');
+  if(!confirm('Close '+ct.name+' and pay out?\n\n'+summary+'\n\nThis credits BerryCoins and locks the Tour.')) return;
+  top.forEach(function(r,i){
+    var cur=(state.coinAwards && state.coinAwards[r.name] && state.coinAwards[r.name].total)||0;
+    db.ref('pl2627/coinAwards/'+r.name).set({ total: cur+prizes[i], updated:Date.now() });
+  });
+  db.ref('pl2627/tourPayouts/'+ct.n).set({ tour:ct.n, name:ct.name, paidBy:currentPlayer, paidAt:Date.now(), winners: top.map(function(r,i){ return { name:r.name, prize:prizes[i], net:r.net }; }) });
+  alert(ct.name+' paid out. Coins credited to the top '+top.length+'.');
+}
+function brkHub(){
+  var h='';
+  if(!BARRACKS.live) h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:#f2b01e;font-weight:700"><span>&#128295; '+(currentPlayer===ADMIN?'ADMIN PREVIEW':'EARLY ACCESS')+'</span><span style="color:var(--muted);font-weight:500">'+(currentPlayer===ADMIN?'Live for admins and testers. Public sees coming-soon until launch.':'Preview access for testing. Still being built.')+'</span></div>';
+  h+=brkTourBanner();
+  h+=brkWalletCard();
+  h+=brkStakeReminder();
+  h+=brkDuelPanel();
+  h+=brkTourTableCard();
+  if(currentPlayer===ADMIN) h+=brkAdminControls();
+  h+=brkEconomyCard();
+  return h;
+}
+
 function renderBarracks() {
-  return brkAccess() ? brkAdminPreview() : brkComingSoon();
+  return brkAccess() ? brkHub() : brkComingSoon();
 }
 
 function renderRewards() {
@@ -2284,7 +2392,7 @@ function getBerryCoins(player) {
   } else if(state.loginStreaks && state.loginStreaks[player]) {
     loginB = state.loginStreaks[player].totalLoginCoins || 0;
   }
-  return base + bonus + loginB - getApprovedSpent(player);
+  return base + bonus + loginB - getApprovedSpent(player) + getCoinAwards(player);
 }
 
 var REWARD_COSTS = { Airtime: 1000, Data: 1500 };
