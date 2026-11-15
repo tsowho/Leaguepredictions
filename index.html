@@ -1750,6 +1750,41 @@ function brkTablePeek(){
   h+='</div>';
   return h;
 }
+function brkStatRow(){
+  var coins=Math.max(0,getBerryCoins(currentPlayer)); var chips=getChipBal(currentPlayer);
+  var h='<div style="display:flex;gap:12px;margin-bottom:14px">';
+  h+='<div class="card" style="flex:1;margin:0;display:flex;align-items:center;gap:12px"><div style="font-size:30px">&#127827;</div><div><div style="font-size:24px;font-weight:900;line-height:1">'+coins.toLocaleString()+'</div><div style="font-size:11px;color:var(--muted);letter-spacing:.04em">BERRYCOINS</div></div></div>';
+  h+='<div class="card" style="flex:1;margin:0;display:flex;align-items:center;gap:12px"><div style="width:40px;height:40px;border-radius:50%;background:repeating-conic-gradient(#fff 0 14deg,#1d9e75 14deg 45deg);position:relative;flex-shrink:0"><div style="position:absolute;inset:6px;border-radius:50%;background:linear-gradient(135deg,#2fd39b,#1d9e75);border:2px dashed rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;font-weight:900;color:#06231a;font-size:14px">B</div></div><div><div style="font-size:24px;font-weight:900;line-height:1">'+chips+'</div><div style="font-size:11px;color:var(--muted);letter-spacing:.04em">BERRY CHIPS</div></div></div>';
+  h+='</div>';
+  return h;
+}
+function brkRankStrip(){
+  var lb=getLeaderboard(); var me=lb.find(function(p){return p.name===currentPlayer;})||{total:0};
+  var rk=getRank(me.total); var nx=getNextRank(me.total);
+  var rpct=nx?Math.max(6,Math.min(100,Math.round(((me.total-rk.min)/(nx.min-rk.min))*100))):100;
+  var h='<div class="card" style="margin-bottom:14px">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+  h+='<div style="font-size:14px"><span style="color:'+rk.color+';font-weight:800">&#127894;&#65039; '+rk.name+'</span>'+(nx?' <span style="color:var(--muted)">&#8250;</span> <span style="font-weight:700">'+nx.name+'</span>':' <span style="color:var(--muted)">top rank</span>')+'</div>';
+  h+='<div style="font-size:12px;color:var(--muted)">'+me.total+(nx?' / '+nx.min:'')+' pts</div></div>';
+  h+='<div style="height:8px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden"><div style="height:100%;width:'+rpct+'%;background:'+rk.color+'"></div></div>';
+  h+='</div>';
+  return h;
+}
+function brkNextFixtures(){
+  var mw=getCurrentMW(); var ms=getMWMatches(mw).slice(0,5);
+  if(!ms.length) return '';
+  var h='<div class="card"><div style="font-weight:700;margin-bottom:10px">&#9917; Your next fixtures <span style="font-size:12px;color:var(--muted);font-weight:500">&#183; MW'+mw+'</span></div>';
+  ms.forEach(function(m,i){
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:9px 0'+(i<ms.length-1?';border-bottom:1px solid var(--border)':'')+'">';
+    h+='<span style="flex:1;text-align:right;font-size:13px;font-weight:600">'+m.home+' '+teamLogo(m.home,20)+'</span>';
+    h+='<span style="font-size:11px;color:var(--muted);min-width:34px;text-align:center">v</span>';
+    h+='<span style="flex:1;font-size:13px;font-weight:600">'+teamLogo(m.away,20)+' '+m.away+'</span>';
+    h+='</div>';
+  });
+  h+='</div>';
+  return h;
+}
+
 function brkPrizeNudge(){
   var ct=currentTour(); var rows=tourTable(); var rank=0; rows.forEach(function(r,i){ if(r.name===currentPlayer) rank=i+1; });
   var me=(state.chips&&state.chips[currentPlayer])||{};
@@ -1772,9 +1807,11 @@ function brkHub(){
   } else if(sub==='duels'){
     h+=brkDuelPanel();
   } else {
+    h+=brkStatRow();
+    h+=brkRankStrip();
     h+=brkDashCard();
     h+=brkPrizeNudge();
-    h+=brkTablePeek();
+    h+=brkNextFixtures();
     if(currentPlayer===ADMIN) h+=brkAdminControls();
     h+=brkEconomyCard();
   }
