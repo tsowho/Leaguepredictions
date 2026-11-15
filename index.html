@@ -1704,8 +1704,20 @@ function brkAdminControls(){
     var can=resulted && q.length>0;
     h+='<button onclick="'+(can?'payoutTour()':'')+'" style="width:100%;background:'+(can?'linear-gradient(135deg,#f2b01e,#c98f10)':'#223')+';color:'+(can?'#2a1d04':'#889')+';border:none;border-radius:9px;padding:11px;font-size:13px;font-weight:800;cursor:'+(can?'pointer':'not-allowed')+'">&#127942; Close Tour and pay out '+BARRACKS.prizes[0]+' / '+BARRACKS.prizes[1]+' / '+BARRACKS.prizes[2]+'</button>';
   }
+  h+='<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">';
+  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Launch status: Barracks is <b style="color:'+(BARRACKS.live?'#2fd39b':'#f2b01e')+'">'+(BARRACKS.live?'LIVE for everyone':'gated to admin + testers')+'</b></div>';
+  h+='<button onclick="resetBarracks()" style="width:100%;background:#2a1414;border:1px solid #e24b4a;color:#ff9a98;border-radius:9px;padding:10px;font-size:12px;font-weight:700;cursor:pointer">&#9851;&#65039; Clean reset for launch (wipe test chips, stakes, duels, payouts)</button>';
+  h+='</div>';
   h+='</div>';
   return h;
+}
+function resetBarracks(){
+  if(currentPlayer!==ADMIN) return;
+  if(!requireAdminAuth()) return;
+  if(!confirm('CLEAN RESET for launch: wipe ALL Berry Chips, stakes, duels and Tour payouts so everyone starts fresh? This cannot be undone.')) return;
+  if(!confirm('Final check. Every player goes back to a fresh '+BARRACKS.economy.starter+' chips on next login. Proceed?')) return;
+  ['chips','stakes','duels','coinAwards','tourPayouts'].forEach(function(n){ db.ref('pl2627/'+n).remove(); });
+  alert('Barracks reset. Everyone starts fresh on next login.');
 }
 function payoutTour(){
   if(currentPlayer!==ADMIN) return;
