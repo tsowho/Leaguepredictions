@@ -1719,16 +1719,51 @@ function payoutTour(){
   db.ref('pl2627/tourPayouts/'+ct.n).set({ tour:ct.n, name:ct.name, paidBy:currentPlayer, paidAt:Date.now(), winners: top.map(function(r,i){ return { name:r.name, prize:prizes[i], net:r.net }; }) });
   alert(ct.name+' paid out. Coins credited to the top '+top.length+'.');
 }
+function setBarracksSub(sub){ window.barracksSub=sub; render(); }
+function brkSubNav(){
+  var sub=window.barracksSub||'hub';
+  var tabs=[['hub','&#127968; Hub'],['duels','&#9876;&#65039; Duels'],['table','&#127942; Chips table']];
+  var h='<div style="display:flex;gap:6px;margin-bottom:14px">';
+  tabs.forEach(function(t){ var on=(sub===t[0]); h+='<span onclick="setBarracksSub(\''+t[0]+'\')" style="flex:1;text-align:center;padding:10px 6px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;background:'+(on?'linear-gradient(135deg,#2fd39b,#1d9e75)':'var(--card2,#0c141b)')+';color:'+(on?'#06231a':'#cdd')+';border:1px solid '+(on?'transparent':'var(--border)')+'">'+t[1]+'</span>'; });
+  h+='</div>';
+  return h;
+}
+function brkTablePeek(){
+  var ct=currentTour(); var rows=tourTable();
+  if(!rows.length) return '';
+  var top=rows.slice(0,3); var q=tourQualified(rows); var prizeOf={}; q.slice(0,3).forEach(function(r,i){ prizeOf[r.name]=BARRACKS.prizes[i]; });
+  var h='<div class="card" onclick="setBarracksSub(\'table\')" style="cursor:pointer">';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-weight:800;font-size:15px">&#127942; '+ct.name+' top 3</div><span style="font-size:12px;color:#2fd39b;font-weight:700">Full table &#8250;</span></div>';
+  top.forEach(function(r,i){
+    var me=(r.name===currentPlayer); var pr=prizeOf[r.name];
+    var medal=(i===0?'#ffd36a':(i===1?'#cdd':'#e0a872'));
+    h+='<div style="display:flex;align-items:center;gap:10px;padding:6px 0">';
+    h+='<span style="width:20px;font-weight:900;color:'+medal+'">'+(i+1)+'</span>';
+    h+='<span style="flex:1;font-size:14px;font-weight:'+(me?'700':'500')+'">'+r.name+(me?' <span style="color:var(--muted);font-size:11px">you</span>':'')+'</span>';
+    if(pr) h+='<span style="font-size:12px;font-weight:800;color:#ffd36a;margin-right:8px">'+pr+' &#127827;</span>';
+    h+='<span style="font-size:15px;font-weight:900;color:'+(r.net>0?'#2fd39b':(r.net<0?'#e2706e':'var(--muted)'))+'">'+(r.net>0?'+':'')+r.net+'</span>';
+    h+='</div>';
+  });
+  h+='</div>';
+  return h;
+}
 function brkHub(){
   var h='';
   if(!BARRACKS.live) h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:#f2b01e;font-weight:700"><span>&#128295; '+(currentPlayer===ADMIN?'ADMIN PREVIEW':'EARLY ACCESS')+'</span><span style="color:var(--muted);font-weight:500">'+(currentPlayer===ADMIN?'Live for admins and testers. Public sees coming-soon until launch.':'Preview access for testing. Still being built.')+'</span></div>';
   h+=brkTourBanner();
-  h+=brkWalletCard();
-  h+=brkStakeReminder();
-  h+=brkDuelPanel();
-  h+=brkTourTableCard();
-  if(currentPlayer===ADMIN) h+=brkAdminControls();
-  h+=brkEconomyCard();
+  h+=brkSubNav();
+  var sub=window.barracksSub||'hub';
+  if(sub==='table'){
+    h+=brkTourTableCard();
+  } else if(sub==='duels'){
+    h+=brkDuelPanel();
+  } else {
+    h+=brkWalletCard();
+    h+=brkStakeReminder();
+    h+=brkTablePeek();
+    if(currentPlayer===ADMIN) h+=brkAdminControls();
+    h+=brkEconomyCard();
+  }
   return h;
 }
 
