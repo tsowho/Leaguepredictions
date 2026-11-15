@@ -1095,18 +1095,14 @@ function adminAuthBanner(){
   }
   return '<div style="background:rgba(242,176,30,.1);border:1px solid rgba(242,176,30,.4);border-radius:12px;padding:12px;margin-bottom:12px">'
     +'<div style="font-size:13px;font-weight:700;color:#ffd98a;margin-bottom:8px">&#128273; Admin sign in</div>'
-    +'<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Sign in to enter results, settle chips and pay out. Members never see this.</div>'
-    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
-    +'<input id="adminEmail" type="email" placeholder="email" autocomplete="username" style="flex:2;min-width:160px;background:#0c141b;border:1px solid var(--border);border-radius:8px;padding:9px;color:#fff;font-size:13px">'
-    +'<input id="adminPass" type="password" placeholder="password" autocomplete="current-password" style="flex:1;min-width:120px;background:#0c141b;border:1px solid var(--border);border-radius:8px;padding:9px;color:#fff;font-size:13px">'
-    +'<button onclick="adminSignIn()" style="background:linear-gradient(135deg,#2fd39b,#1d9e75);color:#06231a;border:none;border-radius:8px;padding:9px 16px;font-weight:800;font-size:13px;cursor:pointer">Sign in</button>'
-    +'</div><div id="adminAuthErr" style="font-size:12px;color:#e2706e;margin-top:6px"></div></div>';
+    +'<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Sign in with your Google account to enter results, settle chips and pay out. Members never see this.</div>'
+    +'<button onclick="adminSignIn()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#fff;color:#1f2937;border:none;border-radius:8px;padding:11px;font-weight:700;font-size:14px;cursor:pointer"><span style="font-weight:800;color:#4285F4">G</span> Sign in with Google</button>'
+    +'<div id="adminAuthErr" style="font-size:12px;color:#e2706e;margin-top:8px"></div></div>';
 }
 function adminSignIn(){
-  var em=(document.getElementById('adminEmail')||{}).value, pw=(document.getElementById('adminPass')||{}).value;
-  em=(em||'').trim(); var er=document.getElementById('adminAuthErr');
-  if(!em||!pw){ if(er) er.textContent='Enter email and password'; return; }
-  auth.signInWithEmailAndPassword(em,pw).catch(function(e){ if(er) er.textContent=(e&&e.message)?e.message:'Sign in failed'; });
+  var er=document.getElementById('adminAuthErr');
+  var provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(function(e){ if(er) er.textContent=(e&&e.message)?e.message:'Sign in failed'; });
 }
 function adminSignOut(){ auth.signOut().then(function(){ if(currentPlayer) render(); }); }
 
