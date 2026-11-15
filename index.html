@@ -398,11 +398,13 @@ firebase.initializeApp({
 var db = firebase.database();
 var auth = firebase.auth();
 var adminUid = null;
-function maybeRecordAdminUid(){ if(typeof currentPlayer!=='undefined' && currentPlayer===ADMIN && adminUid){ if(!window.state || !state.config || state.config.adminUid!==adminUid) db.ref('pl2627/config/adminUid').set(adminUid); } }
+function maybeRecordAdminUid(){ if(typeof currentPlayer!=='undefined' && currentPlayer===ADMIN && typeof isAdminAuthed==='function' && isAdminAuthed()){ if(!window.state || !state.config || state.config.adminUid!==adminUid) db.ref('pl2627/config/adminUid').set(adminUid); } }
 auth.onAuthStateChanged(function(u){ adminUid=(u && !u.isAnonymous)?u.uid:null; maybeRecordAdminUid(); if(typeof render==='function' && typeof currentPlayer!=='undefined' && currentPlayer) render(); });
 
 // ========== CONFIG ==========
 var ADMIN = 'Baba';
+var ADMIN_UID = ''; // Firebase UID of the admin Google account; when set, only this account unlocks admin
+function isAdminAuthed(){ return !!adminUid && (!ADMIN_UID || adminUid===ADMIN_UID); }
 var FOUNDER_CUTOFF = new Date('2026-08-21T20:00:00+01:00').getTime(); // joined before PL kickoff = Berry First Airborne I (originals only)
 function isFounder(player) {
   var p = state.players[player];
@@ -1090,7 +1092,10 @@ function logout() {
 // ===== ADMIN AUTH (Stage 6 security) =====
 function adminAuthBanner(){
   if(currentPlayer!==ADMIN) return '';
-  if(adminUid){
+  if(adminUid && ADMIN_UID && adminUid!==ADMIN_UID){
+    return '<div style="display:flex;align-items:center;gap:8px;background:rgba(226,112,110,.1);border:1px solid rgba(226,112,110,.4);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px"><span style="color:#e2706e;font-weight:700">&#9888;&#65039; Not the admin account</span><span style="color:var(--muted)">This Google account cannot run admin actions.</span><span onclick="adminSignOut()" style="margin-left:auto;cursor:pointer;color:#cdd;border:1px solid var(--border);border-radius:6px;padding:3px 10px">Sign out</span></div>';
+  }
+  if(isAdminAuthed()){
     return '<div style="display:flex;align-items:center;gap:8px;background:rgba(47,211,155,.08);border:1px solid rgba(47,211,155,.3);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px"><span style="color:#2fd39b;font-weight:700">&#128274; Admin signed in</span><span style="color:var(--muted)">Results, settlement and payouts unlocked.</span><span onclick="adminSignOut()" style="margin-left:auto;cursor:pointer;color:#cdd;border:1px solid var(--border);border-radius:6px;padding:3px 10px">Sign out</span></div>';
   }
   return '<div style="background:rgba(242,176,30,.1);border:1px solid rgba(242,176,30,.4);border-radius:12px;padding:12px;margin-bottom:12px">'
