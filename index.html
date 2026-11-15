@@ -403,8 +403,9 @@ auth.onAuthStateChanged(function(u){ adminUid=(u && !u.isAnonymous)?u.uid:null; 
 
 // ========== CONFIG ==========
 var ADMIN = 'Baba';
-var ADMIN_UID = ''; // Firebase UID of the admin Google account; when set, only this account unlocks admin
+var ADMIN_UID = 'V6lCkCrqBYMLiyToRfcOGfMQC3P2'; // Firebase UID of the admin Google account; only this account unlocks admin
 function isAdminAuthed(){ return !!adminUid && (!ADMIN_UID || adminUid===ADMIN_UID); }
+function requireAdminAuth(){ if(ADMIN_UID && !isAdminAuthed()){ alert('Sign in as admin first. Use the Sign in with Google button at the top of the page.'); return false; } return true; }
 var FOUNDER_CUTOFF = new Date('2026-08-21T20:00:00+01:00').getTime(); // joined before PL kickoff = Berry First Airborne I (originals only)
 function isFounder(player) {
   var p = state.players[player];
@@ -1705,6 +1706,7 @@ function brkAdminControls(){
 }
 function payoutTour(){
   if(currentPlayer!==ADMIN) return;
+  if(!requireAdminAuth()) return;
   var ct=currentTour();
   if(!duelMWResulted(ct.to)){ alert('Tour '+ct.n+' is not finished, MW'+ct.to+' still has games to result.'); return; }
   if(state.tourPayouts && state.tourPayouts[ct.n]){ alert('Tour '+ct.n+' has already been paid out.'); return; }
@@ -2357,21 +2359,25 @@ function submitPrediction(matchId) {
 
 function setSignupGate(open) {
   if(currentPlayer !== ADMIN) return;
+  if(!requireAdminAuth()) return;
   if(!confirm((open ? 'Open' : 'Close') + ' signups for new players?')) return;
   if(open) db.ref('pl2627/config/gateOpenedAt').set(Date.now());
   db.ref('pl2627/config/signupGate').set(open ? 'open' : 'closed');
 }
 function lockMW(mw) {
   if(currentPlayer !== ADMIN) return;
+  if(!requireAdminAuth()) return;
   db.ref('pl2627/manualLock/mw' + mw).set(true);
 }
 function unlockMW(mw) {
   if(currentPlayer !== ADMIN) return;
+  if(!requireAdminAuth()) return;
   if(confirm('Re-open predictions for MW' + mw + '? Only do this if you locked it by mistake.')) {
     db.ref('pl2627/manualLock/mw' + mw).remove();
   }
 }
 function saveActual(matchId) {
+  if(!requireAdminAuth()) return;
   var s1 = document.getElementById('actual_s1_' + matchId).value;
   var s2 = document.getElementById('actual_s2_' + matchId).value;
   if(s1 === '' || s2 === '' || isNaN(s1) || isNaN(s2)) { alert('Enter both scores'); return; }
@@ -2535,6 +2541,7 @@ window.redeemReward = function(label, cost) {
 
 window.approveRedemption = function(id) {
   if(currentPlayer !== ADMIN) return;
+  if(!requireAdminAuth()) return;
   var adminPin = (state.players[ADMIN] || {}).pin;
   var entered = prompt('Enter your admin PIN to approve (deducts coins):');
   if(entered === null) return;
@@ -2544,12 +2551,14 @@ window.approveRedemption = function(id) {
 
 window.rejectRedemption = function(id) {
   if(currentPlayer !== ADMIN) return;
+  if(!requireAdminAuth()) return;
   if(!confirm('Reject this redemption? No coins are deducted.')) return;
   db.ref('pl2627/redemptions/' + id).update({ status: 'rejected', approvedBy: ADMIN, approvedAt: Date.now() });
 };
 
 window.fulfillRedemption = function(id) {
   if(currentPlayer !== ADMIN) return;
+  if(!requireAdminAuth()) return;
   if(!confirm('Mark as fulfilled? Confirm you have sent the airtime/data to the player.')) return;
   db.ref('pl2627/redemptions/' + id).update({ status: 'fulfilled', fulfilledAt: Date.now() });
 };
