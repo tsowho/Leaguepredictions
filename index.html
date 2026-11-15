@@ -1361,6 +1361,7 @@ function brkStakeBox(m){
   var hasScore = cp && cp.s1!==undefined && cp.s2!==undefined;
   var bal = getChipBal(currentPlayer);
   var maxA = Math.min(BARRACKS.stake.max, Math.floor(bal*BARRACKS.stake.capPct));
+  var _me=(state.chips&&state.chips[currentPlayer])||{}; var _boosted=(_me.streak||0)>=3; var _bst=_boosted?BARRACKS.mult.streakBoost:0;
   var sel = Math.min((_stakeSel[m.id]||BARRACKS.stake.min), Math.max(BARRACKS.stake.min,maxA));
   var presets=[10,25,50,100];
   var s2='<div style="margin-top:8px;padding:12px;border-radius:12px;background:var(--card2,#0c141b);border:1px solid rgba(242,176,30,.35)">';
@@ -1370,7 +1371,9 @@ function brkStakeBox(m){
   s2+='<div style="display:flex;gap:6px;margin-bottom:8px">';
   presets.forEach(function(v){ var on=(sel===v); var dis=v>maxA; s2+='<span onclick="'+(dis?'':'selStake('+m.id+','+v+')')+'" style="flex:1;text-align:center;padding:7px 0;border-radius:8px;font-size:13px;font-weight:700;cursor:'+(dis?'not-allowed':'pointer')+';background:'+(on?'linear-gradient(135deg,#2fd39b,#1d9e75)':'transparent')+';color:'+(on?'#06231a':(dis?'#44504a':'#cdd'))+';border:1px solid '+(on?'transparent':'var(--border)')+'">'+v+'</span>'; });
   s2+='</div>';
-  s2+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:8px"><span>Exact &times;4 = <b style="color:#2fd39b">'+(sel*4)+'</b></span><span>Res+GD &times;2.5 = <b style="color:#2fd39b">'+Math.floor(sel*2.5)+'</b></span><span>Result &times;1.5 = <b style="color:#2fd39b">'+Math.floor(sel*1.5)+'</b></span></div>';
+  if(_boosted) s2+='<div style="display:flex;align-items:center;gap:8px;background:rgba(242,140,30,.12);border:1px solid rgba(242,140,30,.4);border-radius:8px;padding:7px 10px;margin-bottom:8px;font-size:12px;color:#ffb765"><span>&#128293;</span><span>Hot streak active, <b>+'+BARRACKS.mult.streakBoost+'</b> added to each multiplier if this wins.</span></div>';
+  var _mx=BARRACKS.mult; var _ex=_mx.exact+_bst,_rg=_mx.resultGD+_bst,_rr=_mx.result+_bst;
+  s2+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:8px"><span>Exact &times;'+_ex+' = <b style="color:#2fd39b">'+Math.floor(sel*_ex)+'</b></span><span>Res+GD &times;'+_rg+' = <b style="color:#2fd39b">'+Math.floor(sel*_rg)+'</b></span><span>Result &times;'+_rr+' = <b style="color:#2fd39b">'+Math.floor(sel*_rr)+'</b></span></div>';
   if(!hasScore){ s2+='<div style="font-size:12px;color:var(--muted);text-align:center">Set a score to enable staking.</div>'; }
   else if(maxA < BARRACKS.stake.min){ s2+='<div style="font-size:12px;color:#e2706e;text-align:center">Not enough chips to stake (need '+BARRACKS.stake.min+').</div>'; }
   else { s2+='<button onclick="placeStake('+m.id+')" style="width:100%;background:linear-gradient(135deg,#f2b01e,#c98f10);color:#2a1d04;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:800;cursor:pointer">&#127919; Stake '+sel+' on '+cp.s1+'-'+cp.s2+'</button>'; }
