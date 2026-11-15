@@ -1770,6 +1770,29 @@ function brkHub(){
   return h;
 }
 
+function openBarracks(sub){ if(sub) window.barracksSub=sub; switchTab('barracks'); }
+function brkDashCard(){
+  if(!brkAccess()) return '';
+  var bal=getChipBal(currentPlayer);
+  var me=(state.chips&&state.chips[currentPlayer])||{};
+  var streak=me.streak||0;
+  var rows=tourTable(); var rank=0; rows.forEach(function(r,i){ if(r.name===currentPlayer) rank=i+1; });
+  var h='<div class="card" style="border:1px solid rgba(47,211,155,.4);background:linear-gradient(135deg,rgba(47,211,155,.07),rgba(13,26,21,.35))">';
+  h+='<div style="display:flex;align-items:center;gap:16px">';
+  h+='<div style="width:58px;height:58px;border-radius:50%;background:repeating-conic-gradient(#fff 0 14deg,#1d9e75 14deg 45deg);position:relative;flex-shrink:0"><div style="position:absolute;inset:9px;border-radius:50%;background:linear-gradient(135deg,#2fd39b,#1d9e75);border:3px dashed rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;font-weight:900;color:#06231a;font-size:20px">B</div></div>';
+  h+='<div style="flex:1"><div style="font-size:30px;font-weight:900;line-height:1">'+bal+'</div><div style="font-size:11px;color:var(--muted);letter-spacing:.06em">BERRY CHIPS</div>';
+  h+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+  if(streak>0) h+='<span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:#0a1512;border:1px solid rgba(242,140,30,.5);color:#ffb765">&#128293; Streak '+streak+'</span>';
+  h+='<span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:#0a1512;border:1px solid '+(rank?'rgba(47,211,155,.4)':'var(--border)')+';color:'+(rank?'#2fd39b':'var(--muted)')+'">'+(rank?('#'+rank+' this Tour'):'Not ranked yet')+'</span>';
+  h+='</div></div></div>';
+  h+='<div style="display:flex;gap:8px;margin-top:14px">';
+  h+='<div onclick="switchTab(\'predict\')" style="flex:1;text-align:center;background:linear-gradient(135deg,#2fd39b,#1d9e75);color:#06231a;border-radius:12px;padding:12px 6px;cursor:pointer"><div style="font-size:20px">&#127919;</div><div style="font-size:12px;font-weight:800;margin-top:2px">STAKE</div></div>';
+  h+='<div onclick="openBarracks(\'duels\')" style="flex:1;text-align:center;background:var(--card2,#0c141b);border:1px solid var(--border);color:#cdd;border-radius:12px;padding:12px 6px;cursor:pointer"><div style="font-size:20px">&#9876;&#65039;</div><div style="font-size:12px;font-weight:800;margin-top:2px">DUEL</div></div>';
+  h+='<div onclick="openBarracks(\'table\')" style="flex:1;text-align:center;background:var(--card2,#0c141b);border:1px solid var(--border);color:#cdd;border-radius:12px;padding:12px 6px;cursor:pointer"><div style="font-size:20px">&#127942;</div><div style="font-size:12px;font-weight:800;margin-top:2px">TABLE</div></div>';
+  h+='</div></div>';
+  return h;
+}
+
 function renderBarracks() {
   return brkAccess() ? brkHub() : brkComingSoon();
 }
@@ -1860,6 +1883,8 @@ function renderDashboard() {
   h += '<div class="bar"><div style="width:' + rpct + '%;background:' + rk.color + '"></div></div>';
   if(nx) h += '<div class="meta" style="margin-top:6px">' + (nx.min - me.total) + ' points to promotion</div>';
   h += '</div></div>';
+
+  h += brkDashCard();
 
   // Next matchweek deadline
   var nextMW = getMWMatches(currentMW);
