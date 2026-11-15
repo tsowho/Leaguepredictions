@@ -1261,6 +1261,7 @@ function render(immediate) {
 /* ===== Berry Barracks (staking hub) - Stage 1: config + gated tab ===== */
 var BARRACKS = {
   live:false,
+  testers:[],
   tours: [
     { n:'I',   name:'Operation First Strike',    from:11, to:14 },
     { n:'II',  name:'Operation Ironclad',                  from:15, to:18 },
@@ -1453,7 +1454,7 @@ function settleDuels(){
   Object.keys(updates).forEach(function(id){ db.ref('pl2627/duels/'+id).update(updates[id]); });
 }
 function brkDuelPanel(){
-  if(!(BARRACKS.live || currentPlayer===ADMIN)) return '';
+  if(!brkAccess()) return '';
   var mw=getCurrentMW(); var me=currentPlayer; var duels=state.duels||{};
   var ids=Object.keys(duels); var incoming=[],outgoing=[],active=[],recent=[];
   ids.forEach(function(id){ var d=duels[id]; if(!d) return; d._id=id;
@@ -1565,7 +1566,7 @@ function brkTourBanner() {
     + '</div>';
 }
 function brkAdminPreview() {
-  var h = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:#f2b01e;font-weight:700"><span>&#128295; ADMIN PREVIEW</span><span style="color:var(--muted);font-weight:500">Being built in stages. The public sees the coming-soon screen.</span></div>';
+  var h = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:#f2b01e;font-weight:700"><span>&#128295; '+(currentPlayer===ADMIN?'ADMIN PREVIEW':'EARLY ACCESS')+'</span><span style="color:var(--muted);font-weight:500">'+(currentPlayer===ADMIN?'Being built in stages. The public sees the coming-soon screen.':'Preview access for testing. Still being built.')+'</span></div>';
   h += brkTourBanner();
   h += '<div class="card" style="display:flex;align-items:center;gap:14px">'
     + '<div style="width:52px;height:52px;border-radius:50%;background:repeating-conic-gradient(#fff 0 14deg,#1d9e75 14deg 45deg);position:relative;flex-shrink:0"><div style="position:absolute;inset:8px;border-radius:50%;background:linear-gradient(135deg,#2fd39b,#1d9e75);border:2px dashed rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;font-weight:900;color:#06231a">B</div></div>'
@@ -1585,8 +1586,16 @@ function brkAdminPreview() {
   h += '<div class="card"><div style="font-weight:700;margin-bottom:8px">&#9881;&#65039; Economy (locked)</div><div style="font-size:13px;color:var(--muted);line-height:1.8">Starter 500 &#183; weekly drop 300 &#183; login +10/day &#183; picks +10/match &#183; hot streak +150 at 5 in a row<br>Stake min 10, max 200, 25% balance cap &#183; duel ante 50 to 500<br>Payout each Tour: 150 / 100 / 75 coins to top 3 &#183; qualify with net positive and 8 staked picks</div></div>';
   return h;
 }
+function brkAccess(){
+  if(BARRACKS.live) return true;
+  if(currentPlayer===ADMIN) return true;
+  if(BARRACKS.testers && BARRACKS.testers.indexOf(currentPlayer)>=0) return true;
+  var ct=state.config && state.config.barracksTesters;
+  if(ct){ var list=Array.isArray(ct)?ct:String(ct).split(','); for(var i=0;i<list.length;i++){ if(String(list[i]).trim()===currentPlayer) return true; } }
+  return false;
+}
 function renderBarracks() {
-  return (currentPlayer === ADMIN) ? brkAdminPreview() : brkComingSoon();
+  return brkAccess() ? brkAdminPreview() : brkComingSoon();
 }
 
 function renderRewards() {
@@ -2985,7 +2994,7 @@ renderPredict = function() {
       h += '</div>';
       h += '<button onclick="submitPrediction(' + m.id + ')" style="margin-top:8px;width:100%;background:#1d9e75;color:#fff;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:700;cursor:pointer">&#128274; Lock in pick (final)</button>';
       h += '<div style="font-size:11px;color:var(--muted);text-align:center;margin-top:5px">Edit freely until you lock in. Once locked in, your pick is final.</div>';
-      if(BARRACKS.live || currentPlayer === ADMIN) h += brkStakeBox(m);
+      if(brkAccess()) h += brkStakeBox(m);
 
       // Pick distribution for open matches
       var dist = getPickDistribution(m.id);
@@ -3012,7 +3021,7 @@ renderPredict = function() {
       h += '<div class="match-prediction" style="color:var(--red)">No prediction</div>';
     }
 
-    if(locked && (BARRACKS.live || currentPlayer === ADMIN)) h += brkStakeStatus(m);
+    if(locked && brkAccess()) h += brkStakeStatus(m);
     h += '</div>';
   });
 
