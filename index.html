@@ -1884,8 +1884,6 @@ function renderDashboard() {
   if(nx) h += '<div class="meta" style="margin-top:6px">' + (nx.min - me.total) + ' points to promotion</div>';
   h += '</div></div>';
 
-  h += brkDashCard();
-
   // Next matchweek deadline
   var nextMW = getMWMatches(currentMW);
   var firstMatch = nextMW[0];
@@ -2869,6 +2867,8 @@ renderDashboard = function() {
   h += '<div class="bar"><div style="width:' + _rpct + '%;background:' + _rk.color + '"></div></div>';
   if(_nx) h += '<div class="meta" style="margin-top:6px">' + (_nx.min - me.total) + ' points to promotion</div>';
   h += '</div></div>';
+
+  h += brkDashCard();
 
   // Admin controls
   if(isAdmin) {
