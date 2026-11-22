@@ -1366,7 +1366,7 @@ function brkStakeBox(m){
   var presets=[10,25,50,100];
   var s2='<div style="margin-top:8px;padding:12px;border-radius:12px;background:var(--card2,#0c141b);border:1px solid rgba(242,176,30,.35)">';
   s2+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;font-weight:700;color:#ffd98a">&#127919; STAKE CHIPS</span><span style="font-size:11px;color:var(--muted)">Bal '+bal+' &#183; max '+maxA+'</span></div>';
-  if(hasScore) s2+='<div style="font-size:12px;color:#cdd;margin-bottom:8px">Backing <b style="color:#fff">'+cp.s1+' - '+cp.s2+'</b> with chips. Your pick for points stays separate and editable.</div>';
+  if(hasScore) s2+='<div style="font-size:12px;color:#cdd;margin-bottom:8px">Backing <b style="color:#fff">'+cp.s1+' - '+cp.s2+'</b> with chips. This is separate from your points pick.</div>';
   else s2+='<div style="font-size:12px;color:#e2b35a;margin-bottom:8px">Enter the score you want to back above, then stake.</div>';
   s2+='<div style="display:flex;gap:6px;margin-bottom:8px">';
   presets.forEach(function(v){ var on=(sel===v); var dis=v>maxA; s2+='<span onclick="'+(dis?'':'selStake('+m.id+','+v+')')+'" style="flex:1;text-align:center;padding:7px 0;border-radius:8px;font-size:13px;font-weight:700;cursor:'+(dis?'not-allowed':'pointer')+';background:'+(on?'linear-gradient(135deg,#2fd39b,#1d9e75)':'transparent')+';color:'+(on?'#06231a':(dis?'#44504a':'#cdd'))+';border:1px solid '+(on?'transparent':'var(--border)')+'">'+v+'</span>'; });
@@ -3286,11 +3286,12 @@ renderPredict = function() {
                   var rp = (typeof actual !== 'undefined' && actual && actual.s1 !== undefined) ? calcPoints(pred, actual) : null;
       var rpc = rp ? (rp.pts >= 5 ? '#3ddc9a' : rp.pts >= 2 ? '#1d9e75' : '#e24b4a') : 'var(--muted)';
       h += '<div class="match-prediction">Your pick: ' + pred.s1 + ' - ' + pred.s2 + (rp ? ' &middot; <span style="color:' + rpc + ';font-weight:600">You earned ' + (rp.pts >= 5 ? '&#11088; +5' : rp.pts >= 2 ? '+2' : '0') + '</span>' : '') + '</div>';
+      if(!mlock && brkAccess()) h += brkStakeBox(m);
     } else {
       h += '<div class="match-prediction" style="color:var(--red)">No prediction</div>';
     }
 
-    if(locked && brkAccess()) h += brkStakeStatus(m);
+    if(mlock && brkAccess()) h += brkStakeStatus(m);
     h += '</div>';
   });
 
