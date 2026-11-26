@@ -1351,7 +1351,7 @@ function brkStakeStatus(m){
   if(!mine) return '';
   var sc = (mine.s1!==undefined) ? (mine.s1+' - '+mine.s2) : 'your final pick';
   var tail='';
-  if(mine.settled){ tail = mine.won ? ' <span style="color:#2fd39b;font-weight:700">Won '+mine.payout+'</span>' : ' <span style="color:#e2706e;font-weight:700">Lost '+mine.amt+'</span>'; }
+  if(mine.settled){ var _res=(mine.as1!==undefined)?(' <span style="color:var(--muted)">(ended '+mine.as1+'-'+mine.as2+')</span>'):''; tail = (mine.won ? ' <span style="color:#2fd39b;font-weight:700">Won '+mine.payout+'</span>' : ' <span style="color:#e2706e;font-weight:700">Lost '+mine.amt+'</span>')+_res; }
   return '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(47,211,155,.08);border:1px solid rgba(47,211,155,.3);font-size:12px;color:#9fe9cf">&#127919; Staked <b style="color:#fff">'+mine.amt+'</b> chips on <b style="color:#fff">'+sc+'</b>.'+tail+'</div>';
 }
 function brkStakeBox(m){
@@ -1433,6 +1433,62 @@ function settleStakes(matchId, as1, as2){
     db.ref('pl2627/stakes/'+pl+'/'+mk).update({ settled:true, mult:mult, payout:payout, won:won });
   });
 }
+function settleAllStakes(){
+  if(currentPlayer !== ADMIN) return;
+  if(!state.stakes) return;
+  var chipState={}; var updates={};
+  function getC(pl){ if(!chipState[pl]){ var c=Object.assign({bal:0},state.chips[pl]||{}); _alignTour(c); chipState[pl]=c; } return chipState[pl]; }
+  Object.keys(state.stakes).forEach(function(pl){
+    var ps=state.stakes[pl]; if(!ps) return;
+    var mks=Object.keys(ps).filter(function(mk){ var st=ps[mk]; if(!st||st.settled) return false; var a=state.actuals&&state.actuals[mk]; return a&&a.s1!==undefined&&a.s2!==undefined; });
+    mks.sort(function(x,y){ return (ps[x].ts||0)-(ps[y].ts||0); });
+    mks.forEach(function(mk){
+      var st=ps[mk]; var a=state.actuals[mk]; var as1=a.s1,as2=a.s2;
+      var ps1=(st.s1!==undefined)?st.s1:(state.predictions[pl]&&state.predictions[pl][mk]?state.predictions[pl][mk].s1:undefined);
+      var ps2=(st.s2!==undefined)?st.s2:(state.predictions[pl]&&state.predictions[pl][mk]?state.predictions[pl][mk].s2:undefined);
+      var mult=0;
+      if(ps1!==undefined&&ps2!==undefined){ var pr=ps1>ps2?1:(ps1<ps2?-1:0), ar=as1>as2?1:(as1<as2?-1:0);
+        if(ps1===as1&&ps2===as2) mult=BARRACKS.mult.exact; else if(pr===ar&&(ps1-ps2)===(as1-as2)) mult=BARRACKS.mult.resultGD; else if(pr===ar) mult=BARRACKS.mult.result; }
+      var c=getC(pl); var won=mult>0; var pre=c.streak||0;
+      var eff=won?(pre>=3?mult+BARRACKS.mult.streakBoost:mult):0;
+      var payout=won?Math.floor(st.amt*eff):0;
+      c.bal=(c.bal||0)+payout; c.tourNet=(c.tourNet||0)+payout;
+      if(won){ c.streak=pre+1; if(c.streak%BARRACKS.economy.streakAt===0){ c.bal+=BARRACKS.economy.streakBonus; c.tourNet+=BARRACKS.economy.streakBonus; } } else { c.streak=0; }
+      updates[pl+'||'+mk]={ settled:true, mult:mult, payout:payout, won:won, as1:as1, as2:as2 };
+    });
+  });
+  Object.keys(chipState).forEach(function(pl){ db.ref('pl2627/chips/'+pl).set(chipState[pl]); });
+  Object.keys(updates).forEach(function(k){ var p=k.split('||'); db.ref('pl2627/stakes/'+p[0]+'/'+p[1]).update(updates[k]); });
+}
+function adminSettleNow(){
+  if(currentPlayer!==ADMIN) return;
+  if(!requireAdminAuth()) return;
+  settleAllStakes(); if(typeof settleDuels==='function') settleDuels();
+  alert('Settled all stakes and duels that have results. Won and Lost now show on the Predict screen and under Your results.');
+}
+function brkHistory(){
+  var me=currentPlayer; var items=[];
+  var ms=state.stakes && state.stakes[me];
+  if(ms) Object.keys(ms).forEach(function(mk){ var st=ms[mk]; if(st&&st.settled){ items.push({ts:st.ts||0,type:'stake',amt:st.amt,won:st.won,payout:st.payout,s1:st.s1,s2:st.s2,as1:st.as1,as2:st.as2}); } });
+  if(state.duels) Object.keys(state.duels).forEach(function(id){ var d=state.duels[id]; if(d&&d.status==='settled'&&(d.from===me||d.to===me)){ items.push({ts:d.settledTs||0,type:'duel',opp:(d.from===me)?d.to:d.from,ante:d.ante,iWon:(d.winner===me),draw:(d.winner==='draw'),mw:d.mw}); } });
+  if(!items.length) return '';
+  items.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+  var h='<div class="card"><div style="font-weight:800;font-size:16px;margin-bottom:10px">&#128220; Your results</div>';
+  items.slice(0,12).forEach(function(it){
+    if(it.type==='stake'){
+      var sc=(it.s1!==undefined)?(it.s1+'-'+it.s2):'your pick';
+      var res=(it.as1!==undefined)?(' <span style="color:var(--muted)">&#183; ended '+it.as1+'-'+it.as2+'</span>'):'';
+      var badge=it.won?'<span style="color:#2fd39b;font-weight:800">+'+it.payout+'</span>':'<span style="color:#e2706e;font-weight:800">-'+it.amt+'</span>';
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="font-size:17px">&#127919;</span><span style="flex:1">Staked <b style="color:#fff">'+it.amt+'</b> on '+sc+res+'</span>'+badge+'</div>';
+    } else {
+      var badge=it.draw?'<span style="color:#e2b35a;font-weight:800">ante back</span>':(it.iWon?'<span style="color:#2fd39b;font-weight:800">+'+(it.ante*2)+'</span>':'<span style="color:#e2706e;font-weight:800">-'+it.ante+'</span>');
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="font-size:17px">&#9876;&#65039;</span><span style="flex:1">Duel vs <b style="color:#fff">'+it.opp+'</b> &#183; MW'+it.mw+'</span>'+badge+'</div>';
+    }
+  });
+  h+='</div>';
+  return h;
+}
+
 // ===== BERRY BARRACKS: DUELS =====
 var _duelSel = {};
 function duelMWStarted(mw){ return getMWMatches(mw).some(function(m){ return isLocked(m); }); }
@@ -1704,6 +1760,7 @@ function brkAdminControls(){
     var can=resulted && q.length>0;
     h+='<button onclick="'+(can?'payoutTour()':'')+'" style="width:100%;background:'+(can?'linear-gradient(135deg,#f2b01e,#c98f10)':'#223')+';color:'+(can?'#2a1d04':'#889')+';border:none;border-radius:9px;padding:11px;font-size:13px;font-weight:800;cursor:'+(can?'pointer':'not-allowed')+'">&#127942; Close Tour and pay out '+BARRACKS.prizes[0]+' / '+BARRACKS.prizes[1]+' / '+BARRACKS.prizes[2]+'</button>';
   }
+  h+='<button onclick="adminSettleNow()" style="width:100%;background:#1d9e75;color:#fff;border:none;border-radius:9px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;margin-top:10px">&#9881;&#65039; Settle all stakes and duels now</button>';
   h+='<div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px">';
   h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Launch status: Barracks is <b style="color:'+(BARRACKS.live?'#2fd39b':'#f2b01e')+'">'+(BARRACKS.live?'LIVE for everyone':'gated to admin + testers')+'</b></div>';
   h+='<button onclick="resetBarracks()" style="width:100%;background:#2a1414;border:1px solid #e24b4a;color:#ff9a98;border-radius:9px;padding:10px;font-size:12px;font-weight:700;cursor:pointer">&#9851;&#65039; Clean reset for launch (wipe test chips, stakes, duels, payouts)</button>';
@@ -1827,6 +1884,7 @@ function brkHub(){
     h+=brkDashCard();
     h+=brkPrizeNudge();
     h+=brkNextFixtures();
+    h+=brkHistory();
     if(currentPlayer===ADMIN) h+=brkAdminControls();
     h+=brkEconomyCard();
   }
@@ -2468,7 +2526,7 @@ function saveActual(matchId) {
   var s2 = document.getElementById('actual_s2_' + matchId).value;
   if(s1 === '' || s2 === '' || isNaN(s1) || isNaN(s2)) { alert('Enter both scores'); return; }
   if(!confirm('Save result?')) return;
-  db.ref('pl2627/actuals/m' + matchId).set({ s1: parseInt(s1), s2: parseInt(s2) }, function(){ if(typeof settleStakes==='function') settleStakes(matchId, parseInt(s1), parseInt(s2)); if(typeof settleDuels==='function') settleDuels(); });
+  db.ref('pl2627/actuals/m' + matchId).set({ s1: parseInt(s1), s2: parseInt(s2) }, function(){ if(typeof settleAllStakes==='function') settleAllStakes(); if(typeof settleDuels==='function') settleDuels(); });
 }
 
 function changeMW(dir) {
