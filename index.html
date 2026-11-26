@@ -1351,7 +1351,7 @@ function brkStakeStatus(m){
   if(!mine) return '';
   var sc = (mine.s1!==undefined) ? (mine.s1+' - '+mine.s2) : 'your final pick';
   var tail='';
-  if(mine.settled){ var _res=(mine.as1!==undefined)?(' <span style="color:var(--muted)">(ended '+mine.as1+'-'+mine.as2+')</span>'):''; tail = (mine.won ? ' <span style="color:#2fd39b;font-weight:700">Won '+mine.payout+'</span>' : ' <span style="color:#e2706e;font-weight:700">Lost '+mine.amt+'</span>')+_res; }
+  if(mine.settled){ var _res=(mine.as1!==undefined)?(' <span style="color:var(--muted)">(ended '+mine.as1+'-'+mine.as2+')</span>'):''; tail = (mine.won ? ' <span style="color:#2fd39b;font-weight:700">Won '+mine.payout+'</span>' : ' <span style="color:#e2706e;font-weight:700">Lost '+mine.amt+'</span>')+_res; } else { tail = ' <span style="color:var(--muted)">Settles after the match.</span>'; }
   return '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(47,211,155,.08);border:1px solid rgba(47,211,155,.3);font-size:12px;color:#9fe9cf">&#127919; Staked <b style="color:#fff">'+mine.amt+'</b> chips on <b style="color:#fff">'+sc+'</b>.'+tail+'</div>';
 }
 function brkStakeBox(m){
